@@ -233,6 +233,64 @@ body {
   .t2048-cell { width: 52px; height: 52px; font-size: 20px; }
   .snake-cell { width: 16px; height: 16px; }
 }
+/* Tic-Tac-Toe */
+.ttt-board { display: grid; grid-template-columns: 80px 80px 80px; gap: 4px; }
+.ttt-cell {
+  width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;
+  font-size: 36px; font-weight: 700; background: var(--surface); border-radius: 8px;
+  cursor: pointer; border: 1px solid var(--border); transition: .15s;
+}
+.ttt-cell:hover { border-color: var(--accent); }
+.ttt-cell.x { color: var(--accent2); }
+.ttt-cell.o { color: var(--accent3); }
+.ttt-cell.win { background: rgba(74,222,128,.2); border-color: var(--accent2); }
+.ttt-status { font-size: 16px; font-weight: 600; text-align: center; margin: 8px 0; }
+/* Memory */
+.memory-board { display: grid; gap: 8px; justify-content: center; }
+.memory-card {
+  width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; border-radius: 8px; cursor: pointer; transition: .2s;
+  background: var(--accent); color: white; user-select: none;
+}
+.memory-card.flipped { background: var(--surface); border: 2px solid var(--accent); }
+.memory-card.matched { background: var(--accent2); border-color: var(--accent2); cursor: default; opacity: .7; }
+.memory-card:hover { transform: scale(1.05); }
+/* Whack-a-Mole */
+.whack-board { display: grid; gap: 12px; justify-content: center; }
+.whack-hole {
+  width: 72px; height: 72px; border-radius: 50%; background: var(--surface2);
+  display: flex; align-items: center; justify-content: center; font-size: 36px;
+  cursor: pointer; transition: .15s; border: 2px solid var(--border);
+}
+.whack-hole.mole { background: var(--surface); border-color: var(--accent3); }
+.whack-hole.mole:hover { transform: scale(1.1); }
+.whack-hole:active { transform: scale(.9); }
+.whack-score { font-size: 18px; font-weight: 700; }
+/* Dino Runner */
+.dino-area {
+  width: 100%; height: 200px; position: relative; overflow: hidden;
+  background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+}
+.dino-ground {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+  background: var(--border);
+}
+.dino-sprite {
+  position: absolute; bottom: 4px; left: 40px; width: 28px; height: 32px;
+  font-size: 28px; line-height: 32px; transition: bottom .1s;
+}
+.dino-sprite.jump { bottom: 80px; }
+.dino-obstacle {
+  position: absolute; bottom: 4px; font-size: 24px;
+  animation: dino-run 2s linear infinite;
+}
+@keyframes dino-run { from{right:-30px} to{right:100%} }
+.dino-score { font-size: 16px; font-weight: 700; text-align: right; padding: 8px; }
+.dino-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 18px; font-weight: 700;
+  background: rgba(0,0,0,.3); border-radius: var(--radius); cursor: pointer;
+}
 /* Toast */
 .toast {
   position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -285,6 +343,10 @@ const GAMES = [
   { id:'match3',   icon:'💎', name:'消消乐', desc:'交换宝石达成三连消除，争取最高分' },
   { id:'game2048', icon:'🔢', name:'2048', desc:'滑动合并方块，挑战 2048 目标' },
   { id:'snake',    icon:'🐍', name:'贪吃蛇', desc:'经典贪吃蛇，吃食物变长，别撞墙' },
+  { id:'tictactoe',icon:'❌', name:'井字棋', desc:'经典三连棋，对弈 AI，先连成一线者胜' },
+  { id:'memory',   icon:'🃏', name:'记忆翻牌', desc:'翻牌配对，考验你的记忆力' },
+  { id:'whack',    icon:'🔨', name:'打地鼠', desc:'地鼠出没，快速敲击得分' },
+  { id:'dino',     icon:'🦖', name:'恐龙跑酷', desc:'跳跃躲避障碍，无尽奔跑挑战' },
 ];
 
 // ============ NAVIGATION ============
@@ -939,6 +1001,390 @@ function renderSnake(container) {
   init();
 }
 
+// ============ TIC-TAC-TOE ============
+function renderTicTacToe(container) {
+  let board = Array(9).fill(''), turn = 'X', gameOver = false, status = '你的回合 (X)';
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">❌ 井字棋</span>
+    </div>
+    <div class="ttt-status" id="tttStatus">你的回合 (X)</div>
+    <div class="board-wrap"><div class="ttt-board" id="tttBoard"></div></div>
+    <div class="game-controls" style="justify-content:center;margin-top:12px">
+      <button onclick="newTtt()">新游戏</button>
+    </div>
+  `;
+
+  const draw = () => {
+    const b = $('#tttBoard'); b.innerHTML = '';
+    board.forEach((val,i) => {
+      const cell = document.createElement('div');
+      cell.className = 'ttt-cell' + (val ? ' '+val.toLowerCase() : '');
+      cell.textContent = val;
+      cell.onclick = () => clickCell(i);
+      b.appendChild(cell);
+    });
+  };
+
+  const winLines = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  const checkWin = (b) => {
+    for (const [a,bc,c] of winLines) {
+      if (b[a] && b[a]===b[bc] && b[a]===b[c]) return {winner:b[a], line:[a,bc,c]};
+    }
+    if (b.every(v=>v)) return {winner:'draw'};
+    return null;
+  };
+
+  const aiMove = () => {
+    const empty = board.map((v,i)=>v===''?i:null).filter(v=>v!==null);
+    // Win if can
+    for (const i of empty) {
+      const test = [...board]; test[i]='O';
+      if (checkWin(test)) return i;
+    }
+    // Block player win
+    for (const i of empty) {
+      const test = [...board]; test[i]='X';
+      if (checkWin(test)) return i;
+    }
+    // Center
+    if (board[4]==='') return 4;
+    // Random corner
+    const corners = empty.filter(i=>[0,2,6,8].includes(i));
+    if (corners.length) return corners[Math.floor(Math.random()*corners.length)];
+    // Any
+    return empty[Math.floor(Math.random()*empty.length)];
+  };
+
+  const clickCell = (i) => {
+    if (gameOver || board[i] || turn==='O') return;
+    board[i] = 'X';
+    const result = checkWin(board);
+    if (result) { gameOver=true; highlightWin(result); return; }
+    turn = 'O';
+    $('#tttStatus').textContent = 'AI 思考中...';
+    draw();
+    setTimeout(() => {
+      const j = aiMove();
+      if (j === undefined) { gameOver=true; $('#tttStatus').textContent='🤝 平局！'; draw(); return; }
+      board[j] = 'O';
+      const r2 = checkWin(board);
+      if (r2) { gameOver=true; highlightWin(r2); return; }
+      turn = 'X';
+      $('#tttStatus').textContent = '你的回合 (X)';
+      draw();
+    }, 300);
+  };
+
+  const highlightWin = (result) => {
+    draw();
+    if (result.winner === 'draw') {
+      $('#tttStatus').textContent = '🤝 平局！';
+    } else {
+      $('#tttStatus').textContent = result.winner==='X' ? '🎉 你赢了！' : '😵 AI 赢了！';
+      result.line.forEach(i => {
+        $$('.ttt-cell')[i].classList.add('win');
+      });
+    }
+  };
+
+  window.newTtt = () => { board=Array(9).fill(''); turn='X'; gameOver=false; $('#tttStatus').textContent='你的回合 (X)'; draw(); };
+  draw();
+}
+
+// ============ MEMORY MATCH ============
+function renderMemory(container) {
+  const EMOJIS = ['🐶','🐱','🐼','🐨','🦊','🐸','🐵','🦄'];
+  let cards = [], flipped = [], matched = new Set(), locked = false, moves = 0;
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">🃏 记忆翻牌</span>
+    </div>
+    <div class="game-status">
+      <span>🔄 <strong id="memMoves">0</strong> 步</span>
+      <span>✅ <strong id="memMatched">0</strong>/${EMOJIS.length}</span>
+      <div class="game-controls">
+        <button onclick="newMem()">新游戏</button>
+      </div>
+    </div>
+    <div class="board-wrap"><div id="memBoard" class="memory-board"></div></div>
+  `;
+
+  const shuffle = arr => {
+    for (let i=arr.length-1; i>0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    return arr;
+  };
+
+  const init = () => {
+    cards = shuffle([...EMOJIS, ...EMOJIS]);
+    flipped = []; matched = new Set(); locked = false; moves = 0;
+    $('#memMoves').textContent = '0';
+    $('#memMatched').textContent = '0';
+    draw();
+  };
+
+  const draw = () => {
+    const b = $('#memBoard');
+    b.style.gridTemplateColumns = `repeat(4, 64px)`;
+    b.innerHTML = '';
+    cards.forEach((emoji, i) => {
+      const card = document.createElement('div');
+      card.className = 'memory-card';
+      if (matched.has(i)) { card.className += ' matched'; card.textContent = emoji; }
+      else if (flipped.includes(i)) { card.className += ' flipped'; card.textContent = emoji; }
+      else card.textContent = '❓';
+      card.onclick = () => flipCard(i);
+      b.appendChild(card);
+    });
+  };
+
+  const flipCard = (i) => {
+    if (locked || flipped.includes(i) || matched.has(i) || flipped.length >= 2) return;
+    flipped.push(i);
+    draw();
+    if (flipped.length === 2) {
+      moves++;
+      $('#memMoves').textContent = moves;
+      locked = true;
+      const [a,b] = flipped;
+      if (cards[a] === cards[b]) {
+        matched.add(a); matched.add(b);
+        flipped = []; locked = false;
+        $('#memMatched').textContent = matched.size / 2;
+        draw();
+        if (matched.size === cards.length) toast('🎉 恭喜通关！共用 '+moves+' 步', 3000);
+      } else {
+        setTimeout(() => {
+          flipped = []; locked = false;
+          draw();
+        }, 800);
+      }
+    }
+  };
+
+  window.newMem = init;
+  init();
+}
+
+// ============ WHACK-A-MOLE ============
+function renderWhack(container) {
+  const SIZE = 3;
+  let score = 0, timeLeft = 30, activeMole = null, timer = null, gameRunning = false;
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">🔨 打地鼠</span>
+    </div>
+    <div class="game-status">
+      <span class="whack-score">⭐ <strong id="whackScore">0</strong></span>
+      <span>⏱ <strong id="whackTime">30</strong>s</span>
+      <div class="game-controls">
+        <button id="whackStartBtn">开始</button>
+      </div>
+    </div>
+    <div class="board-wrap"><div id="whackBoard" class="whack-board"></div></div>
+  `;
+
+  const drawBoard = () => {
+    const b = $('#whackBoard');
+    b.style.gridTemplateColumns = `repeat(${SIZE}, 72px)`;
+    b.innerHTML = '';
+    for (let i=0; i<SIZE*SIZE; i++) {
+      const hole = document.createElement('div');
+      hole.className = 'whack-hole' + (activeMole===i ? ' mole' : '');
+      hole.textContent = activeMole===i ? '🐹' : '';
+      hole.dataset.i = i;
+      hole.onclick = () => whack(i);
+      b.appendChild(hole);
+    }
+  };
+
+  const spawnMole = () => {
+    if (!gameRunning) return;
+    if (activeMole !== null) {
+      const prev = activeMole;
+      activeMole = null;
+      drawBoard();
+      activeMole = prev;
+    }
+    const total = SIZE*SIZE;
+    let next = Math.floor(Math.random()*total);
+    // Avoid same spot in a row
+    while (next === activeMole) next = Math.floor(Math.random()*total);
+    activeMole = next;
+    drawBoard();
+  };
+
+  const whack = (i) => {
+    if (!gameRunning || i !== activeMole) return;
+    score++;
+    $('#whackScore').textContent = score;
+    activeMole = null;
+    toast('💥 +1', 300);
+    drawBoard();
+  };
+
+  const startGame = () => {
+    if (gameRunning) return;
+    score = 0; timeLeft = 30; activeMole = null; gameRunning = true;
+    $('#whackScore').textContent = '0';
+    $('#whackTime').textContent = '30';
+    $('#whackStartBtn').textContent = '游戏中...';
+    drawBoard();
+    spawnMole();
+    timer = setInterval(() => {
+      timeLeft--;
+      $('#whackTime').textContent = timeLeft;
+      spawnMole();
+      if (timeLeft <= 0) {
+        clearInterval(timer); timer=null;
+        gameRunning = false; activeMole = null;
+        $('#whackStartBtn').textContent = '再玩一次';
+        drawBoard();
+        toast('⏰ 时间到！得分：'+score, 2000);
+      }
+    }, 800);
+  };
+
+  document.getElementById('whackStartBtn').onclick = startGame;
+  drawBoard();
+}
+
+// ============ DINO RUNNER ============
+function renderDino(container) {
+  let jumping = false, score = 0, gameOver = false, running = false;
+  let gravity = null, obstacleSpawn = null, scoreTimer = null;
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">🦖 恐龙跑酷</span>
+    </div>
+    <div class="dino-score">🏆 <span id="dinoScore">0</span></div>
+    <div class="dino-area" id="dinoArea">
+      <div class="dino-ground"></div>
+      <div class="dino-sprite" id="dinoSprite">🦖</div>
+      <div class="dino-overlay" id="dinoOverlay">点击开始</div>
+    </div>
+    <div class="game-controls" style="justify-content:center;margin-top:8px">
+      <button onclick="newDino()">重置</button>
+    </div>
+  `;
+
+  const jump = () => {
+    if (jumping || gameOver) return;
+    jumping = true;
+    const sprite = $('#dinoSprite');
+    sprite.classList.add('jump');
+    setTimeout(() => {
+      sprite.classList.remove('jump');
+      jumping = false;
+    }, 400);
+  };
+
+  const spawnObstacle = () => {
+    if (gameOver || !running) return;
+    const area = $('#dinoArea');
+    const obs = document.createElement('div');
+    obs.className = 'dino-obstacle';
+    obs.textContent = Math.random() < 0.5 ? '🌵' : '🪨';
+    obs.style.animationDuration = (1.8 + Math.random() * 0.4) + 's';
+    area.appendChild(obs);
+    // Remove after animation
+    obs.addEventListener('animationend', () => obs.remove());
+  };
+
+  const checkCollision = () => {
+    if (gameOver) return;
+    const sprite = $('#dinoSprite');
+    const area = $('#dinoArea');
+    const sRect = sprite.getBoundingClientRect();
+    area.querySelectorAll('.dino-obstacle').forEach(obs => {
+      const oRect = obs.getBoundingClientRect();
+      // Collision detection
+      if (sRect.right > oRect.left + 5 && sRect.left < oRect.right - 5 &&
+          sRect.bottom > oRect.top + 5) {
+        endGame();
+      }
+    });
+  };
+
+  const endGame = () => {
+    gameOver = true; running = false;
+    if (gravity) clearInterval(gravity);
+    if (obstacleSpawn) clearInterval(obstacleSpawn);
+    if (scoreTimer) clearInterval(scoreTimer);
+    const overlay = $('#dinoOverlay');
+    overlay.textContent = '💀 游戏结束，得分：'+score;
+    overlay.style.display = 'flex';
+  };
+
+  const startGame = () => {
+    if (running) return;
+    score = 0; gameOver = false; running = true;
+    $('#dinoScore').textContent = '0';
+    // Remove existing obstacles
+    $('#dinoArea').querySelectorAll('.dino-obstacle').forEach(o => o.remove());
+    const overlay = $('#dinoOverlay');
+    overlay.style.display = 'none';
+
+    obstacleSpawn = setInterval(() => spawnObstacle(), 1200 + Math.random() * 800);
+    gravity = setInterval(() => checkCollision(), 50);
+    scoreTimer = setInterval(() => {
+      if (!gameOver && running) {
+        score++;
+        $('#dinoScore').textContent = score;
+      }
+    }, 200);
+  };
+
+  document.onkeydown = (e) => {
+    if (!$('#gameView').classList.contains('active')) return;
+    if (!$('#dinoSprite')) return;
+    if (e.key === ' ' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (gameOver) { newDino(); setTimeout(startGame, 100); return; }
+      if (!running) { startGame(); return; }
+      jump();
+    }
+  };
+
+  $('#dinoArea').onclick = () => {
+    if (gameOver) { newDino(); setTimeout(startGame, 100); return; }
+    if (!running) { startGame(); return; }
+    jump();
+  };
+
+  window.newDino = () => {
+    if (gravity) clearInterval(gravity);
+    if (obstacleSpawn) clearInterval(obstacleSpawn);
+    if (scoreTimer) clearInterval(scoreTimer);
+    jumping = false; score = 0; gameOver = false; running = false;
+    gravity = null; obstacleSpawn = null; scoreTimer = null;
+    $('#dinoScore').textContent = '0';
+    $('#dinoArea').querySelectorAll('.dino-obstacle').forEach(o => o.remove());
+    $('#dinoSprite').classList.remove('jump');
+    const overlay = $('#dinoOverlay');
+    overlay.textContent = '🦖 点击开始';
+    overlay.style.display = 'flex';
+  };
+
+  newDino();
+}
+
 // ============ RENDER DISPATCH ============
 function renderGame(id, container) {
   const map = {
@@ -947,6 +1393,10 @@ function renderGame(id, container) {
     match3: renderMatch3,
     game2048: render2048,
     snake: renderSnake,
+    tictactoe: renderTicTacToe,
+    memory: renderMemory,
+    whack: renderWhack,
+    dino: renderDino,
   };
   if (map[id]) map[id](container);
 }
