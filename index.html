@@ -266,6 +266,28 @@ body {
 .whack-hole.mole:hover { transform: scale(1.1); }
 .whack-hole:active { transform: scale(.9); }
 .whack-score { font-size: 18px; font-weight: 700; }
+/* Number Eater */
+.ne-board-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ne-board { display: grid; background: var(--surface2); border-radius: 4px; position: relative; }
+.ne-cell {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  position: relative; user-select: none;
+}
+.ne-cell.npc { color: var(--accent3); }
+.ne-cell.player { color: var(--accent2); font-size: 13px; }
+.ne-cell.player-small { background: rgba(74,222,128,.15); border-radius: 50%; }
+.ne-cell.player-med { background: rgba(74,222,128,.25); border-radius: 50%; }
+.ne-cell.player-large { background: rgba(74,222,128,.35); border-radius: 50%; }
+.ne-cell.player-huge { background: rgba(74,222,128,.45); border-radius: 50%; }
+.ne-cell.eat { animation: ne-eat .2s ease; }
+@keyframes ne-eat { 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+.ne-cell.hurt { animation: ne-hurt .2s ease; color: #ff4444 !important; }
+@keyframes ne-hurt { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+.ne-info { display: flex; gap: 16px; align-items: center; }
+.ne-info span { font-size: 14px; }
+.ne-highscore { color: var(--text2); font-size: 12px; }
 /* Dino Runner */
 .dino-area {
   width: 100%; height: 200px; position: relative; overflow: hidden;
@@ -347,6 +369,7 @@ const GAMES = [
   { id:'memory',   icon:'🃏', name:'记忆翻牌', desc:'翻牌配对，考验你的记忆力' },
   { id:'whack',    icon:'🔨', name:'打地鼠', desc:'地鼠出没，快速敲击得分' },
   { id:'dino',     icon:'🦖', name:'恐龙跑酷', desc:'跳跃躲避障碍，无尽奔跑挑战' },
+  { id:'numEater', icon:'🔢', name:'数字吞噬', desc:'控制数字吞噬比自己小的数字，变大变强' },
 ];
 
 // ============ NAVIGATION ============
@@ -1368,6 +1391,191 @@ function renderDino(container) {
     jump();
   };
 
+}
+
+// ============ NUMBER EATER ============
+function renderNumEater(container) {
+  const ROWS=20, COLS=20;
+  let grid=[], player={r:10,c:10,val:2}, npcs=[], gameOver=false, score=0, highScore=0;
+  let spawnTimer=null, aiTimer=null, dirTimer=null;
+
+  // Load high score
+  try { highScore = parseInt(localStorage.getItem('ne_highscore'))||0; } catch(e) {}
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">🔢 数字吞噬</span>
+    </div>
+    <div class="game-status">
+      <div class="ne-info">
+        <span>🧬 <strong id="neVal">2</strong></span>
+        <span class="ne-highscore">🏆 <span id="neHigh">${highScore}</span></span>
+      </div>
+      <div class="game-controls">
+        <button id="neStartBtn">开始</button>
+        <button class="secondary" onclick="newNumEater()">重置</button>
+      </div>
+    </div>
+    <div class="ne-board-wrap">
+      <div id="neBoard" class="ne-board"></div>
+      <div style="color:var(--text2);font-size:12px;text-align:center">方向键移动 · 吃掉比自己小的数字</div>
+    </div>
+  `;
+
+  const init = () => {
+    if (spawnTimer) { clearInterval(spawnTimer); spawnTimer=null; }
+    if (aiTimer) { clearInterval(aiTimer); aiTimer=null; }
+    if (dirTimer) { clearInterval(dirTimer); dirTimer=null; }
+    grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    player = {r:Math.floor(ROWS/2), c:Math.floor(COLS/2), val:2};
+    npcs = []; gameOver = false;
+    // Initial NPCs
+    for (let i=0; i<30; i++) spawnNpc();
+    $('#neStartBtn').textContent = '开始';
+    draw();
+  };
+
+  const spawnNpc = () => {
+    const occupied = new Set();
+    occupied.add(player.r+','+player.c);
+    npcs.forEach(n => occupied.add(n.r+','+n.c));
+    const empty = [];
+    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) if (!occupied.has(r+','+c)) empty.push([r,c]);
+    if (empty.length === 0) return;
+    const [r,c] = empty[Math.floor(Math.random()*empty.length)];
+    const val = Math.ceil(Math.random() * 9);
+    npcs.push({r,c,val});
+  };
+
+  const draw = () => {
+    const b = $('#neBoard');
+    b.style.gridTemplateColumns = `repeat(${COLS},28px)`;
+    b.innerHTML = '';
+    const npcMap = new Map();
+    npcs.forEach(n => { const k=n.r+','+n.c; if (!npcMap.has(k) || n.val > npcMap.get(k).val) npcMap.set(k, n); });
+    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+      const cell = document.createElement('div'); cell.className = 'ne-cell';
+      const npc = npcMap.get(r+','+c);
+      if (r===player.r && c===player.c) {
+        cell.className += ' player';
+        const size = player.val;
+        if (size <= 5) cell.className += ' player-small';
+        else if (size <= 10) cell.className += ' player-med';
+        else if (size <= 20) cell.className += ' player-large';
+        else cell.className += ' player-huge';
+        cell.textContent = player.val > 99 ? '∞' : player.val;
+      } else if (npc) {
+        cell.className += ' npc';
+        cell.textContent = npc.val;
+      }
+      b.appendChild(cell);
+    }
+    $('#neVal').textContent = player.val;
+  };
+
+  const movePlayer = (dr, dc) => {
+    if (gameOver) return;
+    const nr = player.r + dr, nc = player.c + dc;
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return;
+    // Check NPC at target
+    const targetIdx = npcs.findIndex(n => n.r===nr && n.c===nc);
+    if (targetIdx >= 0) {
+      const target = npcs[targetIdx];
+      if (target.val < player.val) {
+        // Eat!
+        player.val += target.val;
+        npcs.splice(targetIdx, 1);
+        player.r = nr; player.c = nc;
+        draw();
+        // Add eat animation class
+        // Check win
+        if (player.val >= 100) { endGame(true); return; }
+      } else {
+        // Hit larger number - game over
+        endGame(false);
+        return;
+      }
+    } else {
+      player.r = nr; player.c = nc;
+      draw();
+    }
+  };
+
+  const endGame = (win) => {
+    gameOver = true;
+    if (spawnTimer) { clearInterval(spawnTimer); spawnTimer=null; }
+    if (aiTimer) { clearInterval(aiTimer); aiTimer=null; }
+    if (dirTimer) { clearInterval(dirTimer); dirTimer=null; }
+    $('#neStartBtn').textContent = '开始';
+    if (player.val > highScore) {
+      highScore = player.val;
+      localStorage.setItem('ne_highscore', highScore);
+      $('#neHigh').textContent = highScore;
+    }
+    toast(win ? '🎉 吞噬王！你达到了 100！' : '💀 被吃掉了！最终数值：'+player.val, 3000);
+  };
+
+  const startGame = () => {
+    if (gameOver) { init(); }
+    if (spawnTimer) { clearInterval(spawnTimer); spawnTimer=null; }
+    if (aiTimer) { clearInterval(aiTimer); aiTimer=null; }
+    if (dirTimer) { clearInterval(dirTimer); dirTimer=null; }
+    $('#neStartBtn').textContent = '游戏中...';
+    // Spawn NPCs periodically
+    spawnTimer = setInterval(() => {
+      if (!gameOver && npcs.length < 25) spawnNpc();
+      draw();
+    }, 2000);
+    // AI move
+    aiTimer = setInterval(() => {
+      if (gameOver) return;
+      // Move NPCs randomly
+      npcs.forEach(n => {
+        const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+        const [dr, dc] = dirs[Math.floor(Math.random()*4)];
+        const nr = n.r + dr, nc = n.c + dc;
+        if (nr>=0 && nr<ROWS && nc>=0 && nc<COLS && !(nr===player.r && nc===player.c)) {
+          // Check no other NPC there
+          const conflict = npcs.some(other => other!==n && other.r===nr && other.c===nc);
+          if (!conflict) { n.r = nr; n.c = nc; }
+        }
+      });
+      draw();
+    }, 500);
+  };
+
+  // Keyboard
+  document.onkeydown = (e) => {
+    if (!$('#gameView').classList.contains('active')) return;
+    if (!$('#neBoard')) return;
+    const map = {
+      ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1],
+      'w':[-1,0], 's':[1,0], 'a':[0,-1], 'd':[0,1],
+      'W':[-1,0], 'S':[1,0], 'A':[0,-1], 'D':[0,1],
+    };
+    if (map[e.key]) {
+      e.preventDefault();
+      if (!spawnTimer && !gameOver) { startGame(); }
+      movePlayer(map[e.key][0], map[e.key][1]);
+    }
+  };
+
+  document.getElementById('neStartBtn').onclick = () => {
+    if (gameOver) { init(); }
+    if (spawnTimer) {
+      clearInterval(spawnTimer); clearInterval(aiTimer); clearInterval(dirTimer);
+      spawnTimer=null; aiTimer=null; dirTimer=null;
+      $('#neStartBtn').textContent = '继续';
+    } else {
+      startGame();
+    }
+  };
+
+  window.newNumEater = init;
+  init();
+}
+
   window.newDino = () => {
     if (gravity) clearInterval(gravity);
     if (obstacleSpawn) clearInterval(obstacleSpawn);
@@ -1397,6 +1605,7 @@ function renderGame(id, container) {
     memory: renderMemory,
     whack: renderWhack,
     dino: renderDino,
+    numEater: renderNumEater,
   };
   if (map[id]) map[id](container);
 }
