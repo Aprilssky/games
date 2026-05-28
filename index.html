@@ -367,6 +367,60 @@ body {
   .mt-cell { width: 30px; height: 30px; font-size: 14px; }
   .mt-hud span { font-size: 11px; padding: 2px 6px; }
 }
+/* Tetris */
+.tetris-wrap { display: flex; gap: 16px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.tetris-board { display: grid; gap: 1px; background: var(--border); border-radius: 4px; padding: 1px; }
+.tetris-cell { width: 28px; height: 28px; border-radius: 2px; }
+.tetris-cell.I { background: #00f0f0; }
+.tetris-cell.O { background: #f0f000; }
+.tetris-cell.T { background: #a000f0; }
+.tetris-cell.S { background: #00f000; }
+.tetris-cell.Z { background: #f00000; }
+.tetris-cell.J { background: #0000f0; }
+.tetris-cell.L { background: #f0a000; }
+.tetris-cell.ghost { background: rgba(255,255,255,.1); border: 1px dashed rgba(255,255,255,.2); }
+.tetris-side { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.tetris-next { display: grid; gap: 1px; background: var(--border); border-radius: 4px; padding: 1px; }
+.tetris-next .tetris-cell { width: 22px; height: 22px; }
+.tetris-score { font-size: 18px; font-weight: 700; text-align: center; }
+.tetris-controls { display: grid; grid-template-columns: 44px 44px 44px; gap: 4px; justify-content: center; margin-top: 8px; }
+.tetris-controls button { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; height: 44px; }
+.tetris-controls button:active { background: var(--accent); }
+@media(max-width:500px) {
+  .tetris-cell { width: 22px; height: 22px; }
+  .tetris-next .tetris-cell { width: 18px; height: 18px; }
+}
+/* Flappy Bird */
+.flappy-area { position: relative; width: 100%; max-width: 400px; height: 500px; margin: 0 auto; background: linear-gradient(180deg,#70c5ce,#a8e6cf); border-radius: var(--radius); overflow: hidden; cursor: pointer; }
+.flappy-bird { position: absolute; font-size: 28px; transition: transform .1s; left: 60px; }
+.flappy-pipe { position: absolute; width: 52px; background: linear-gradient(180deg,#73c72b,#4a8c1a); border: 3px solid #2d5e0e; border-radius: 4px; }
+.flappy-pipe::after { content: ''; position: absolute; left: -6px; width: 58px; height: 18px; background: linear-gradient(180deg,#73c72b,#4a8c1a); border: 3px solid #2d5e0e; border-radius: 3px; }
+.flappy-pipe.top { bottom: auto; }
+.flappy-pipe.top::after { bottom: -6px; }
+.flappy-pipe.bot { top: auto; }
+.flappy-pipe.bot::after { top: -6px; }
+.flappy-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; background: rgba(0,0,0,.3); font-size: 20px; font-weight: 700; color: white; }
+.flappy-score { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 32px; font-weight: 800; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,.5); z-index: 2; }
+.flappy-speed-btn { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,.3); border: none; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; z-index: 2; }
+/* Reversi */
+.reversi-board { display: grid; gap: 3px; justify-content: center; }
+.reversi-cell { width: 44px; height: 44px; background: #2d7a3d; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: .15s; }
+.reversi-cell:hover { filter: brightness(1.2); }
+.reversi-cell .piece { width: 34px; height: 34px; border-radius: 50%; transition: .2s; }
+.reversi-cell .piece.black { background: #222; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.reversi-cell .piece.white { background: #eee; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+.reversi-cell.hint .piece { width: 12px; height: 12px; background: rgba(255,255,255,.35); }
+.reversi-cell.flip { animation: rev-flip .3s ease; }
+@keyframes rev-flip { 0%{transform:rotateY(0)} 50%{transform:rotateY(90deg)} 100%{transform:rotateY(0)} }
+.reversi-hud { display: flex; gap: 20px; justify-content: center; font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.reversi-hud .black-score { color: #222; }
+.reversi-hud .white-score { color: #999; }
+.reversi-hud .active { text-decoration: underline; text-underline-offset: 4px; }
+.reversi-hud .win { background: var(--accent2); padding: 2px 10px; border-radius: 12px; color: #000; text-decoration: none; }
+@media(max-width:500px) {
+  .reversi-cell { width: 38px; height: 38px; }
+  .reversi-cell .piece { width: 30px; height: 30px; }
+}
 </style>
 </head>
 <body>
@@ -417,6 +471,9 @@ const GAMES = [
   { id:'dino',     icon:'🦖', name:'恐龙跑酷', desc:'跳跃躲避障碍，无尽奔跑挑战' },
   { id:'numEater', icon:'🔢', name:'数字吞噬', desc:'控制数字吞噬比自己小的数字，变大变强' },
   { id:'magictower', icon:'🏰', name:'魔塔', desc:'经典魔塔闯关，打怪升级夺钥匙，登上塔顶' },
+  { id:'tetris', icon:'🧱', name:'俄罗斯方块', desc:'旋转下落的经典解谜，消除行数力争高分' },
+  { id:'flappy', icon:'🐦', name:'Flappy Bird', desc:'点按控制小鸟穿越管道，一玩就停不下来' },
+  { id:'reversi', icon:'⚫', name:'黑白棋', desc:'经典 Reversi 对弈 AI，翻转对手棋子占最多地盘' },
 ];
 
 // ============ NAVIGATION ============
@@ -1959,6 +2016,344 @@ function renderMagicTower(container) {
   resetGame();
 }
 
+// ============ TETRIS ============
+function renderTetris(container) {
+  const COLS=10, ROWS=20, SIZE=28;
+  const SHAPES = [
+    {cells:[[1,1,1,1]],color:'I'},
+    {cells:[[1,1],[1,1]],color:'O'},
+    {cells:[[0,1,0],[1,1,1]],color:'T'},
+    {cells:[[0,1,1],[1,1,0]],color:'S'},
+    {cells:[[1,1,0],[0,1,1]],color:'Z'},
+    {cells:[[1,0,0],[1,1,1]],color:'J'},
+    {cells:[[0,0,1],[1,1,1]],color:'L'},
+  ];
+  let board=[], piece=null, next=null, score=0, gameOver=false, timer=null, dropInterval=500;
+
+  function randPiece() { return {...SHAPES[Math.random()*SHAPES.length|0], x:3, y:0}; }
+  function rotate(cells) {
+    const n=cells.length, m=cells[0].length;
+    return Array.from({length:m},(_,c)=>Array.from({length:n},(_,r)=>cells[n-1-r][c]));
+  }
+  function valid(p, offX=0, offY=0) {
+    for (let r=0; r<p.cells.length; r++) for (let c=0; c<p.cells[0].length; c++) {
+      if (!p.cells[r][c]) continue;
+      const nx=p.x+c+offX, ny=p.y+r+offY;
+      if (nx<0||nx>=COLS||ny>=ROWS) return false;
+      if (ny>=0 && board[ny][nx]) return false;
+    }
+    return true;
+  }
+  function lock() {
+    for (let r=0; r<piece.cells.length; r++) for (let c=0; c<piece.cells[0].length; c++) {
+      if (!piece.cells[r][c]) continue;
+      const ny=piece.y+r;
+      if (ny>=0) board[ny][piece.x+c]=piece.color;
+    }
+    // Clear lines
+    let cleared=0;
+    for (let r=ROWS-1; r>=0; r--) {
+      if (board[r].every(c=>c)) { board.splice(r,1); board.unshift(Array(COLS).fill(0)); cleared++; r++; }
+    }
+    if (cleared) score+=[0,100,300,500,800][cleared];
+    spawnPiece();
+    draw();
+  }
+  function spawnPiece() {
+    piece=next||randPiece();
+    next=randPiece();
+    if (!valid(piece)) { gameOver=true; clearInterval(timer); timer=null; draw(); toast('😵 Game Over! 得分:'+score,2000); }
+    draw();
+  }
+  function drop() { if(!gameOver){if(valid(piece,0,1)){piece.y++;draw();}else lock();} }
+  function movePiece(dx){if(!gameOver&&valid(piece,dx,0)){piece.x+=dx;draw();}}
+  function rotPiece(){if(gameOver)return;const r=rotate(piece.cells);const old=piece.cells;piece.cells=r;if(!valid(piece))piece.cells=old;draw();}
+  function hardDrop(){if(gameOver)return;while(valid(piece,0,1))piece.y++;lock();}
+
+  function draw() {
+    const cont=container;
+    // Board
+    const b=cont.querySelector('.tetris-board');
+    b.style.gridTemplateColumns='repeat('+COLS+','+SIZE+'px)';
+    b.innerHTML='';
+    const ghostY=(()=>{let g=piece.y;while(valid({...piece,y:g},0,1))g++;return g;})();
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const cell=document.createElement('div');cell.className='tetris-cell';
+      let color=board[r][c];
+      if(!color&&piece&&r>=piece.y&&r<piece.y+piece.cells.length&&c>=piece.x&&c<piece.x+piece.cells[0].length){
+        const pc=piece.cells[r-piece.y][c-piece.x];
+        if(pc)color=piece.color;
+        else if(r>=ghostY-piece.cells.length+1&&r<=ghostY&&c>=piece.x&&c<piece.x+piece.cells[0].length){
+          const gc=piece.cells[r-ghostY+piece.cells.length-1-(ghostY-piece.y)][c-piece.x];
+          if(gc&&!board[r][c])cell.className+=' ghost';
+        }
+      }
+      if(color&&color!==true)cell.className+=' '+color;
+      b.appendChild(cell);
+    }
+    cont.querySelector('.tetris-score').textContent='🏆 '+score;
+    // Next piece
+    const n=cont.querySelector('.tetris-next');
+    if(next){n.style.gridTemplateColumns='repeat('+next.cells[0].length+',22px)';n.innerHTML='';
+      for(let r=0;r<next.cells.length;r++)for(let c=0;c<next.cells[0].length;c++){
+        const cell=document.createElement('div');cell.className='tetris-cell';
+        if(next.cells[r][c])cell.className+=' '+next.color;
+        n.appendChild(cell);
+      }
+    }
+  }
+
+  function startGame() {
+    if(timer){clearInterval(timer);timer=null;return;}
+    board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    score=0;gameOver=false;next=null;
+    let lvl=1;
+    timer=setInterval(()=>{drop();},dropInterval);
+    spawnPiece();
+    container.querySelector('.tetris-start').textContent='⏸️ 暂停';
+  }
+
+  function resetGame() {
+    if(timer)clearInterval(timer);timer=null;
+    board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    score=0;gameOver=false;piece=null;next=null;
+    container.querySelector('.tetris-start').textContent='▶️ 开始';
+    draw();
+  }
+
+  _activeKeyHandler=(e)=>{
+    if(!container.querySelector('.tetris-board'))return;
+    const K={ArrowLeft:()=>movePiece(-1),ArrowRight:()=>movePiece(1),ArrowDown:()=>drop(),ArrowUp:()=>rotPiece(),' ':e=>{e.preventDefault();startGame();},'x':()=>hardDrop()};
+    if(K[e.key]){e.preventDefault();K[e.key]();}
+  };
+
+  window.tetrisMove=movePiece;window.tetrisRot=rotPiece;window.tetrisDrop=drop;window.tetrisHard=hardDrop;
+  window.tetrisStart=startGame;window.tetrisReset=resetGame;
+
+  container.innerHTML='<div class="game-header"><button class="back-btn" onclick="backToMenu()">← 返回</button><span class="game-title">🧱 俄罗斯方块</span></div><div class="tetris-wrap"><div class="tetris-board"></div><div class="tetris-side"><div class="tetris-score">🏆 0</div><div>下一个:</div><div class="tetris-next"></div><div class="game-controls" style="justify-content:center"><button class="tetris-start" onclick="tetrisStart()">▶️ 开始</button><button class="secondary" onclick="tetrisReset()">重置</button></div></div></div><div class="tetris-controls"><button style="grid-column:2;grid-row:1" onpointerdown="tetrisRot()">🔄</button><button style="grid-column:1;grid-row:2" onpointerdown="tetrisMove(-1)">⬅</button><button style="grid-column:2;grid-row:2" onpointerdown="tetrisDrop()">⬇</button><button style="grid-column:3;grid-row:2" onpointerdown="tetrisMove(1)">➡</button><button style="grid-column:1;grid-row:3" colspan="3" onpointerdown="tetrisHard()">⏬</button></div>';
+  resetGame();
+}
+
+// ============ FLAPPY BIRD ============
+function renderFlappy(container) {
+  let bird={y:200,vy:0},pipes=[],score=0,gameOver=false,running=false,timer=null,pipeTimer=null;
+  const GRAVITY=0.5, JUMP=-8, PIPE_W=52, GAP=150, SPEED=3;
+
+  function jump() {
+    if(gameOver){resetGame();setTimeout(startGame,100);return;}
+    if(!running){startGame();return;}
+    bird.vy=JUMP;
+  }
+
+  function startGame() {
+    if(running)return;
+    bird={y:200,vy:0};pipes=[];score=0;gameOver=false;running=true;
+    document.querySelector('.flappy-overlay').style.display='none';
+    timer=setInterval(update,20);
+    pipeTimer=setInterval(()=>{
+      const topH=80+Math.random()*180|0;
+      pipes.push({x:400,top:topH,bot:topH+GAP,scored:false});
+    },1500);
+  }
+
+  function update() {
+    bird.vy+=GRAVITY;bird.y+=bird.vy;
+    if(bird.y>460){bird.y=460;endGame();return;}
+    if(bird.y<0){bird.y=0;bird.vy=0;}
+    const area=document.querySelector('.flappy-area');
+    const sprite=area.querySelector('.flappy-bird');
+    sprite.style.top=bird.y+'px';
+    sprite.style.transform='rotate('+Math.min(bird.vy*3,60)+'deg)';
+    // Move pipes
+    const areaPipes=area.querySelectorAll('.flappy-pipe');
+    for(let i=areaPipes.length-1;i>=0;i--){
+      const p=areaPipes[i];const x=parseInt(p.style.left||'400');
+      if(p.classList.contains('top')){
+        const idx=pipes.findIndex(pp=>pp._elTop===p);
+        if(idx>=0)pipes[idx].x-=SPEED;
+      }
+    }
+    // Re-render from data
+    pipes.forEach(p=>{p.x-=SPEED;});
+    pipes=pipes.filter(p=>p.x>-60);
+    renderPipes();
+    // Collision
+    const bx=70,by=bird.y,bs=24;
+    pipes.forEach(p=>{
+      if(bx+bs>p.x&&bx<p.x+PIPE_W){
+        if(by<p.top||by+bs>p.bot){endGame();}
+        if(!p.scored&&bx>p.x+PIPE_W/2){p.scored=true;score++;document.querySelector('.flappy-score').textContent=score;}
+      }
+    });
+  }
+
+  function renderPipes() {
+    const area=document.querySelector('.flappy-area');
+    area.querySelectorAll('.flappy-pipe').forEach(el=>el.remove());
+    pipes.forEach(p=>{
+      ['top','bot'].forEach(t=>{
+        const el=document.createElement('div');el.className='flappy-pipe '+t;
+        el.style.left=p.x+'px';
+        if(t==='top'){el.style.height=p.top+'px';el.style.top='0';}
+        else{el.style.height=(500-p.bot)+'px';el.style.bottom='0';}
+        area.appendChild(el);
+        if(t==='top')p._elTop=el;
+      });
+    });
+  }
+
+  function endGame() {
+    gameOver=true;running=false;
+    if(timer)clearInterval(timer);timer=null;
+    if(pipeTimer)clearInterval(pipeTimer);pipeTimer=null;
+    const ov=document.querySelector('.flappy-overlay');
+    ov.style.display='flex';ov.innerHTML='💀 '+score+' 分<br><small>点击重新开始</small>';
+  }
+
+  function resetGame() {
+    if(timer)clearInterval(timer);timer=null;
+    if(pipeTimer)clearInterval(pipeTimer);pipeTimer=null;
+    pipes=[];score=0;gameOver=false;running=false;bird={y:200,vy:0};
+    const area=container.querySelector('.flappy-area');
+    area.querySelector('.flappy-bird').style.top='200px';
+    area.querySelector('.flappy-bird').style.transform='rotate(0deg)';
+    area.querySelectorAll('.flappy-pipe').forEach(el=>el.remove());
+    area.querySelector('.flappy-score').textContent='0';
+    const ov=area.querySelector('.flappy-overlay');
+    ov.style.display='flex';ov.innerHTML='🐦 Flappy Bird<br><small>点击/按空格开始</small>';
+  }
+
+  _activeKeyHandler=(e)=>{
+    if(!container.querySelector('.flappy-area'))return;
+    if(e.key===' '||e.key==='ArrowUp'){e.preventDefault();jump();}
+  };
+
+  window.flappyJump=jump;window.flappyReset=resetGame;
+
+  container.innerHTML='<div class="game-header"><button class="back-btn" onclick="backToMenu()">← 返回</button><span class="game-title">🐦 Flappy Bird</span></div><div class="flappy-area" id="flappyArea"><div class="flappy-bird" style="top:200px">🐦</div><div class="flappy-score">0</div><div class="flappy-overlay" style="display:flex">🐦 Flappy Bird<br><small>点击/按空格开始</small></div></div>';
+  document.getElementById('flappyArea').onclick=jump;
+  resetGame();
+}
+
+// ============ REVERSI ============
+function renderReversi(container) {
+  const SIZE=8;
+  let board=[], turn='black', gameOver=false, lastMove=null;
+  const DIRS=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
+  function init() {
+    board=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
+    board[3][3]='white';board[3][4]='black';
+    board[4][3]='black';board[4][4]='white';
+    turn='black';gameOver=false;lastMove=null;
+    draw();
+  }
+
+  function getValidMoves(color) {
+    const moves=[];
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+      if(board[r][c])continue;
+      for(const [dr,dc] of DIRS){
+        let nr=r+dr,nc=c+dc,found=false;
+        while(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&board[nr][nc]&&board[nr][nc]!==color){
+          nr+=dr;nc+=dc;found=true;
+        }
+        if(found&&nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&board[nr][nc]===color){moves.push([r,c]);break;}
+      }
+    }
+    return moves;
+  }
+
+  function place(r,c,color){
+    board[r][c]=color;
+    for(const [dr,dc] of DIRS){
+      let nr=r+dr,nc=c+dc,flip=[];
+      while(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&board[nr][nc]&&board[nr][nc]!==color){
+        flip.push([nr,nc]);nr+=dr;nc+=dc;
+      }
+      if(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&board[nr][nc]===color)flip.forEach(([fr,fc])=>board[fr][fc]=color);
+    }
+    lastMove=[r,c];
+  }
+
+  function clickCell(r,c){
+    if(gameOver||turn!=='black')return;
+    const valid=getValidMoves('black');
+    if(!valid.some(([vr,vc])=>vr===r&&vc===c))return;
+    place(r,c,'black');
+    if(checkWin())return;
+    turn='white';
+    draw();
+    setTimeout(aiMove,300);
+  }
+
+  function aiMove(){
+    if(gameOver)return;
+    const moves=getValidMoves('white');
+    if(moves.length===0){turn='black';draw();checkWin();return;}
+    let best=null,bestScore=-1;
+    for(const [r,c] of moves){
+      const sim=board.map(row=>[...row]);
+      sim[r][c]='white';
+      for(const [dr,dc] of DIRS){
+        let nr=r+dr,nc=c+dc,flip=[];
+        while(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&sim[nr][nc]&&sim[nr][nc]!=='white'){
+          flip.push([nr,nc]);nr+=dr;nc+=dc;
+        }
+        if(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&sim[nr][nc]==='white')flip.forEach(([fr,fc])=>sim[fr][fc]='white');
+      }
+      let s=0;
+      for(let rr=0;rr<SIZE;rr++)for(let cc=0;cc<SIZE;cc++)if(sim[rr][cc]==='white')s++;
+      if(s>bestScore){bestScore=s;best=[r,c];}
+    }
+    if(best){place(best[0],best[1],'white');}
+    turn='black';draw();checkWin();
+  }
+
+  function checkWin(){
+    const b=getValidMoves('black'),w=getValidMoves('white');
+    if(b.length===0&&w.length===0){gameOver=true;
+      let bc=0,wc=0;
+      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){if(board[r][c]==='black')bc++;if(board[r][c]==='white')wc++;}
+      draw();
+      toast((bc>wc?'⚫ 黑棋胜利！':wc>bc?'⚪ 白棋胜利！':'🤝 平局！')+' '+bc+':'+wc,3000);
+      setTimeout(init,1500);
+      return true;
+    }
+    return false;
+  }
+
+  function draw() {
+    const cont=container;
+    const bc=board.flat().filter(c=>c==='black').length,wc=board.flat().filter(c=>c==='white').length;
+    cont.querySelector('.rev-black').textContent='⚫ '+bc;
+    cont.querySelector('.rev-white').textContent='⚪ '+wc;
+    cont.querySelector('.rev-turn').textContent=turn==='black'?'你的回合':'AI 思考...';
+    const valid=getValidMoves('black');
+    const b=cont.querySelector('.reversi-board');
+    b.style.gridTemplateColumns='repeat('+SIZE+',44px)';
+    b.innerHTML='';
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+      const cell=document.createElement('div');cell.className='reversi-cell';
+      if(board[r][c]){cell.className+=' '+board[r][c];
+        const p=document.createElement('div');p.className='piece '+board[r][c];
+        if(lastMove&&lastMove[0]===r&&lastMove[1]===c)p.style.boxShadow='0 0 8px 2px var(--accent2)';
+        cell.appendChild(p);
+      }else if(valid.some(([vr,vc])=>vr===r&&vc===c)){
+        cell.onclick=()=>clickCell(r,c);
+        const p=document.createElement('div');p.className='piece hint';
+        cell.appendChild(p);
+      }
+      b.appendChild(cell);
+    }
+  }
+
+  window.revNew=init;
+
+  container.innerHTML='<div class="game-header"><button class="back-btn" onclick="backToMenu()">← 返回</button><span class="game-title">⚫ 黑白棋</span></div><div class="reversi-hud"><span class="rev-black black-score">⚫ 2</span><span class="rev-turn" style="color:var(--accent);font-size:14px">你的回合</span><span class="rev-white white-score">⚪ 2</span></div><div class="board-wrap"><div class="reversi-board"></div></div><div class="game-controls" style="justify-content:center;margin-top:8px"><button onclick="revNew()">新游戏</button></div>';
+  init();
+}
+
 // ============ RENDER DISPATCH ============
 function renderGame(id, container) {
   const map = {
@@ -1973,6 +2368,9 @@ function renderGame(id, container) {
     dino: renderDino,
     numEater: renderNumEater,
     magictower: renderMagicTower,
+    tetris: renderTetris,
+    flappy: renderFlappy,
+    reversi: renderReversi,
   };
   if (map[id]) map[id](container);
 }
