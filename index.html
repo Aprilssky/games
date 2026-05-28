@@ -1640,78 +1640,77 @@ function renderNumEater(container) {
 
 // ============ MAGIC TOWER ============
 function renderMagicTower(container) {
-  // ===== MONSTER DEFINITIONS =====
+  // ===== MONSTER DEFINITIONS (single-char keys) =====
   const MONSTERS = {
-    M1: {name:'史莱姆',icon:'🟢',hp:20,atk:10,def:1,gold:2},
-    M2: {name:'蝙蝠',icon:'🦇',hp:35,atk:15,def:2,gold:3},
-    M3: {name:'骷髅',icon:'💀',hp:55,atk:22,def:6,gold:5},
-    M4: {name:'巫师',icon:'🧙',hp:80,atk:32,def:12,gold:8},
-    M5: {name:'骑士',icon:'⚔️',hp:130,atk:45,def:22,gold:12},
-    M6: {name:'恶魔',icon:'👿',hp:220,atk:65,def:35,gold:18},
-    B1: {name:'暗影领主',icon:'👑',hp:400,atk:90,def:55,gold:50},
+    '1': {name:'史莱姆',icon:'🟢',hp:20,atk:10,def:1,gold:2},
+    '2': {name:'蝙蝠',icon:'🦇',hp:35,atk:15,def:2,gold:3},
+    '3': {name:'骷髅',icon:'💀',hp:55,atk:22,def:6,gold:5},
+    '4': {name:'巫师',icon:'🧙',hp:80,atk:32,def:12,gold:8},
+    '5': {name:'骑士',icon:'⚔️',hp:130,atk:45,def:22,gold:12},
+    '6': {name:'恶魔',icon:'👿',hp:220,atk:65,def:35,gold:18},
+    '!': {name:'暗影领主',icon:'👑',hp:400,atk:90,def:55,gold:50},
   };
 
-  // ===== FLOOR MAPS (all 11×11) =====
+  // ===== FLOOR MAPS (all 11×11, single-char tiles) =====
   // W=wall .=floor @=start D=yellowDoor B=blueDoor R=redDoor
   // k=yellowKey b=blueKey r=redKey p=hpPot a=atkPot d=defPot S=stairsUp
-  // M1-M6=monsters B1=boss
+  // 1-6=monsters !=boss
   const FLOOR_MAPS = [
     [ // F1 - Tutorial
       'WWWWWWWWWWW',
-      'W...W...M1W',
+      'W...W...1.W',
       'Wk.W.W....W',
       'Wp.W.D.W..W',
       'W..W....@.W',
       'WW.WWWWW.WW',
       'W...p....WW',
       'W.W..W..W.W',
-      'W..D.W..M2W',
+      'W..D.W..2.W',
       'WkW....k..W',
       'WWWWWWWWSWW',
     ],
     [ // F2
       'WWWWWWWWWWW',
       'W..B..W...W',
-      'W.M2..W.M3W',
+      'W.2..W.3..W',
       'W....W.W..W',
       'W..D..p.p.W',
       'WW.WWWWW.WW',
-      'W....W..M4W',
+      'W....W..4.W',
       'W.a..W....W',
       'W..D.W..d.W',
-      'W.b....M3.W',
+      'W.b....3..W',
       'WWWWWWWWSWW',
     ],
     [ // F3
       'WWWWWWWWWWW',
-      'W..M4..W..W',
-      'W.p.W.W.M5W',
+      'W..4..W..WW',
+      'W.p.W.W.5.W',
       'W..D.W....W',
       'WW.WW..R..W',
       'W.......W.W',
-      'W.M4..W..WW',
+      'W.4...W..WW',
       'W....W.WW.W',
-      'W.r..W..M6W',
+      'W.r..W..6.W',
       'W..a..d...W',
       'WWWWWWWWSWW',
     ],
     [ // F4 - Boss
       'WWWWWWWWWWW',
-      'W..M5..M6.W',
+      'W..5..6...W',
       'W.p..D..a.W',
       'WW.WWWWW.WW',
       'W..d......W',
       'W..D.W....W',
-      'W..d..M6.WW',
+      'W..d..6..WW',
       'WW.WWWWW.WW',
       'W..p..D..WW',
-      'W..a...B1.W',
+      'W..a...!..W',
       'WWWWWWWWSWW',
     ],
   ];
 
   // ===== PERSISTENT FLOOR STATE =====
-  // floorData[floorIdx] = { tiles, monsters, items } — mutated in place
   let floorData = {};
 
   function initFloorData(floorIdx) {
@@ -1727,7 +1726,7 @@ function renderMagicTower(container) {
       else if (ch === '@') tiles[r][c] = '.';
       else if (ch === 'D'||ch==='B'||ch==='R') tiles[r][c] = ch;
       else if (ch === 'S') tiles[r][c] = 'S';
-      else if (ch.match(/^M[1-6]$/)||ch==='B1') { tiles[r][c]='.'; monsters[c+','+r]=ch; }
+      else if (ch.match(/^[1-6!]$/)) { tiles[r][c]='.'; monsters[c+','+r]=ch; }
       else if (ch.match(/^[pkadbr]$/)) { tiles[r][c]='.'; items[c+','+r]=ch; }
       else tiles[r][c] = '.';
     }
@@ -1780,7 +1779,6 @@ function renderMagicTower(container) {
     const p = state;
     const cont = container;
 
-    // HUD
     cont.querySelector('.mt-hp-val').textContent = p.hp;
     cont.querySelector('.mt-atk-val').textContent = p.atk;
     cont.querySelector('.mt-def-val').textContent = p.def;
@@ -1789,7 +1787,6 @@ function renderMagicTower(container) {
     cont.querySelector('.mt-key-b').innerHTML = `🔷 ${p.keys.b}`;
     cont.querySelector('.mt-key-r').innerHTML = `🔴 ${p.keys.r}`;
 
-    // Board
     const board = cont.querySelector('.mt-board');
     board.style.gridTemplateColumns = `repeat(${w},36px)`;
     board.innerHTML = '';
@@ -1810,9 +1807,10 @@ function renderMagicTower(container) {
       } else if (tiles[r][c]==='S') {
         cell.className += ' mt-stairs'; cell.textContent = '🔺';
       } else if (monsters[key]) {
-        const icon = (MONSTERS[monsters[key]]||{}).icon||'❓';
+        const mkey = monsters[key];
+        const icon = (MONSTERS[mkey]||{}).icon||'❓';
         cell.className += ' mt-monster'; cell.textContent = icon;
-        cell.onclick = () => showCombat(monsters[key]);
+        cell.onclick = () => showCombat(mkey);
       } else if (items[key]) {
         const I = {p:'❤️',a:'⚔️',d:'🛡️',k:'🔑',b:'🔷',r:'🔴'};
         cell.className += ' mt-item'; cell.textContent = I[items[key]]||'❓';
@@ -1824,8 +1822,9 @@ function renderMagicTower(container) {
   }
 
   // ===== COMBAT =====
-  function showCombat(monId) {
-    const mon = MONSTERS[monId];
+  function showCombat(monKey) {
+    const mon = MONSTERS[monKey];
+    if (!mon) return;
     const dmg = calcDamage(mon);
     const win = canBeat(mon);
     const p = state;
@@ -1841,20 +1840,20 @@ function renderMagicTower(container) {
       ${win ? `<div class="mt-combat-result win">✅ 可击败！预计损血 <strong>${dmg}</strong></div>`
             : `<div class="mt-combat-result lose">❌ 无法击败！伤害: ${dmg===Infinity?'∞':dmg} > HP ${p.hp}</div>`}
       <div>
-        ${win ? `<button class="mt-combat-btn attack" onclick="mtFight('${monId}')">⚔️ 战斗</button>` : ''}
+        ${win ? `<button class="mt-combat-btn attack" onclick="mtFight('${monKey}')">⚔️ 战斗</button>` : ''}
         <button class="mt-combat-btn ok" onclick="mtCloseCombat()">关闭</button>
       </div>`;
     container.querySelector('.mt-combat-overlay').style.display = 'flex';
   }
 
-  window.mtFight = (monId) => {
-    const mon = MONSTERS[monId];
+  window.mtFight = (monKey) => {
+    const mon = MONSTERS[monKey];
+    if (!mon) return;
     const dmg = calcDamage(mon);
     const p = state;
     p.hp -= dmg;
     p.atk += Math.floor(mon.gold * 0.6);
     p.def += Math.floor(mon.gold * 0.4);
-    // Remove monster from persistent floor data
     const key = p.px+','+p.py;
     delete floorData[state.floor].monsters[key];
     window.mtCloseCombat();
@@ -1885,7 +1884,6 @@ function renderMagicTower(container) {
 
     if (tile === 'W') return;
 
-    // Doors
     if (tile === 'D') {
       if (state.keys.y > 0) { state.keys.y--; tiles[ny][nx]='.'; }
       else { toast('🔑 需要黄色钥匙', 1000); return; }
@@ -1897,13 +1895,11 @@ function renderMagicTower(container) {
       else { toast('🔴 需要红色钥匙', 1000); return; }
     }
 
-    // Monster — pop combat, don't move onto it yet
     if (monsters[key]) {
       showCombat(monsters[key]);
       return;
     }
 
-    // Item pick-up (auto, before moving)
     if (items[key]) {
       const item = items[key];
       delete items[key];
@@ -1915,7 +1911,6 @@ function renderMagicTower(container) {
       else if (item === 'r') { state.keys.r++; toast('🔴 红钥匙 +1', 800); }
     }
 
-    // Stairs — go up
     if (tile === 'S') {
       if (state.floor < FLOOR_MAPS.length - 1) {
         state.floor++;
@@ -1931,7 +1926,6 @@ function renderMagicTower(container) {
       }
     }
 
-    // Move player
     state.px = nx; state.py = ny;
     draw();
   }
