@@ -1494,198 +1494,105 @@ function renderDino(container) {
 
 // ============ NUMBER EATER ============
 function renderNumEater(container) {
-  const ROWS=20, COLS=20;
-  let grid=[], player={r:10,c:10,val:2}, npcs=[], gameOver=false, score=0, highScore=0;
-  let spawnTimer=null, aiTimer=null, dirTimer=null;
+  const LEVELS = [
+    {rows:6, cols:6, numCount:6,  maxVal:4,  startVal:2},
+    {rows:7, cols:7, numCount:10, maxVal:6,  startVal:2},
+    {rows:8, cols:8, numCount:14, maxVal:8,  startVal:2},
+    {rows:9, cols:9, numCount:18, maxVal:10, startVal:2},
+    {rows:10,cols:10,numCount:22, maxVal:12, startVal:3},
+    {rows:11,cols:11,numCount:26, maxVal:15, startVal:3},
+    {rows:12,cols:12,numCount:30, maxVal:18, startVal:4},
+    {rows:13,cols:13,numCount:34, maxVal:22, startVal:4},
+    {rows:14,cols:14,numCount:38, maxVal:26, startVal:5},
+    {rows:15,cols:15,numCount:42, maxVal:30, startVal:5},
+  ];
+  let level = 0, grid = [], player = {r:0,c:0,val:2}, eaten = 0, total = 0, gameOver = false;
 
-  // Load high score
-  try { highScore = parseInt(localStorage.getItem('ne_highscore'))||0; } catch(e) {}
-
-  container.innerHTML = `
-    <div class="game-header">
-      <button class="back-btn" onclick="backToMenu()">← 返回</button>
-      <span class="game-title">🔢 数字吞噬</span>
-    </div>
-    <div class="game-status">
-      <div class="ne-info">
-        <span>🧬 <strong id="neVal">2</strong></span>
-        <span class="ne-highscore">🏆 <span id="neHigh">${highScore}</span></span>
-      </div>
-      <div class="game-controls">
-        <button id="neStartBtn">开始</button>
-        <button class="secondary" onclick="newNumEater()">重置</button>
-      </div>
-    </div>
-    <div class="ne-board-wrap">
-      <div id="neBoard" class="ne-board"></div>
-      <div class="ne-controls" style="display:none;grid-template-columns:40px 40px 40px;gap:4px;justify-content:center;margin-top:6px">
-        <button class="secondary" style="grid-column:2;grid-row:1" onpointerdown="neMove(-1,0)">⬆</button>
-        <button class="secondary" style="grid-column:1;grid-row:2" onpointerdown="neMove(0,-1)">⬅</button>
-        <button class="secondary" style="grid-column:2;grid-row:2" onpointerdown="neMove(1,0)">⬇</button>
-        <button class="secondary" style="grid-column:3;grid-row:2" onpointerdown="neMove(0,1)">➡</button>
-      </div>
-      <div style="color:var(--text2);font-size:12px;text-align:center">方向键移动 · 吃掉比自己小的数字</div>
-    </div>
-  `;
-
-  const init = () => {
-    if (spawnTimer) { clearInterval(spawnTimer); spawnTimer=null; }
-    if (aiTimer) { clearInterval(aiTimer); aiTimer=null; }
-    if (dirTimer) { clearInterval(dirTimer); dirTimer=null; }
-    grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
-    player = {r:Math.floor(ROWS/2), c:Math.floor(COLS/2), val:2};
-    npcs = []; gameOver = false;
-    // Initial NPCs
-    for (let i=0; i<30; i++) spawnNpc();
-    // Show controls on mobile
-    if ('ontouchstart' in window) document.querySelector('.ne-controls').style.display = 'grid';
-    $('#neStartBtn').textContent = '开始';
+  function genLevel(lvl) {
+    const c = LEVELS[Math.min(lvl, LEVELS.length-1)];
+    const {rows,cols,numCount,maxVal,startVal} = c;
+    grid = Array.from({length:rows},()=>Array(cols).fill(0));
+    player = {r:rows>>1, c:cols>>1, val:startVal};
+    eaten = 0; total = numCount; gameOver = false;
+    let placed = 0;
+    while (placed < numCount) {
+      const r = Math.random()*rows|0, c = Math.random()*cols|0;
+      if (grid[r][c] || (r===player.r && c===player.c)) continue;
+      const hi = Math.min(maxVal, player.val + 3 + (placed/3|0));
+      const lo = Math.max(1, player.val - 2 + (placed/4|0));
+      grid[r][c] = Math.min(lo + (Math.random()*(hi-lo+1)|0), maxVal);
+      placed++;
+    }
     draw();
-  };
+  }
 
-  const spawnNpc = () => {
-    const occupied = new Set();
-    occupied.add(player.r+','+player.c);
-    npcs.forEach(n => occupied.add(n.r+','+n.c));
-    const empty = [];
-    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) if (!occupied.has(r+','+c)) empty.push([r,c]);
-    if (empty.length === 0) return;
-    const [r,c] = empty[Math.floor(Math.random()*empty.length)];
-    const val = Math.ceil(Math.random() * 9);
-    npcs.push({r,c,val});
-  };
-
-  const draw = () => {
-    const b = $('#neBoard');
-    b.style.gridTemplateColumns = `repeat(${COLS},28px)`;
-    b.innerHTML = '';
-    const npcMap = new Map();
-    npcs.forEach(n => { const k=n.r+','+n.c; if (!npcMap.has(k) || n.val > npcMap.get(k).val) npcMap.set(k, n); });
-    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+  function draw() {
+    const rows = grid.length, cols = grid[0].length;
+    const sz = rows > 12 ? 30 : rows > 9 ? 34 : 38;
+    container.querySelector('.ne-level').textContent = Math.min(level+1, LEVELS.length);
+    container.querySelector('.ne-val').textContent = player.val;
+    container.querySelector('.ne-progress').textContent = eaten+'/'+total;
+    const board = container.querySelector('.ne-board');
+    board.style.gridTemplateColumns = 'repeat('+cols+','+sz+'px)';
+    board.innerHTML = '';
+    for (let r=0; r<rows; r++) for (let c=0; c<cols; c++) {
       const cell = document.createElement('div'); cell.className = 'ne-cell';
-      const npc = npcMap.get(r+','+c);
-      if (r===player.r && c===player.c) {
+      if (player.r===r && player.c===c) {
         cell.className += ' player';
-        const size = player.val;
-        if (size <= 5) cell.className += ' player-small';
-        else if (size <= 10) cell.className += ' player-med';
-        else if (size <= 20) cell.className += ' player-large';
-        else cell.className += ' player-huge';
-        cell.textContent = player.val > 99 ? '∞' : player.val;
-      } else if (npc) {
+        cell.textContent = player.val > 99 ? '\u221e' : player.val;
+        cell.style.background = 'rgba(74,222,128,'+(player.val<=5?.15:player.val<=10?.25:player.val<=20?.35:.45)+')';
+        cell.style.borderRadius = '50%';
+      } else if (grid[r][c] > 0) {
         cell.className += ' npc';
-        cell.textContent = npc.val;
+        cell.textContent = grid[r][c];
       }
-      b.appendChild(cell);
+      board.appendChild(cell);
     }
-    $('#neVal').textContent = player.val;
-  };
+  }
 
-  const movePlayer = (dr, dc) => {
+  function movePlayer(dr, dc) {
     if (gameOver) return;
+    const rows = grid.length, cols = grid[0].length;
     const nr = player.r + dr, nc = player.c + dc;
-    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return;
-    // Check NPC at target
-    const targetIdx = npcs.findIndex(n => n.r===nr && n.c===nc);
-    if (targetIdx >= 0) {
-      const target = npcs[targetIdx];
-      if (target.val < player.val) {
-        // Eat!
-        player.val += target.val;
-        npcs.splice(targetIdx, 1);
-        player.r = nr; player.c = nc;
-        draw();
-        // Add eat animation class
-        // Check win
-        if (player.val >= 100) { endGame(true); return; }
+    if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) return;
+    const target = grid[nr][nc];
+    if (target > 0 && target >= player.val) {
+      toast('\u274C \u6570\u503C\u4E0D\u591F\u5927\uFF01\u5148\u5403\u66F4\u5C0F\u7684\u6570\u5B57', 800);
+      return;
+    }
+    if (target > 0) {
+      player.val += target;
+      grid[nr][nc] = 0; eaten++;
+      toast('\uD83C\uDF7D\uFE0F +'+target+' = '+player.val, 500);
+    }
+    player.r = nr; player.c = nc;
+    draw();
+    if (eaten >= total) {
+      gameOver = true;
+      if (level < LEVELS.length - 1) {
+        level++;
+        toast('\uD83C\uDF89 \u901A\u5173\uFF01\u8FDB\u5165\u7B2C '+(level+1)+' \u5173\uFF01', 1500);
+        setTimeout(()=>genLevel(level), 600);
       } else {
-        // Hit larger number - game over
-        endGame(false);
-        return;
+        toast('\uD83C\uDFC6 \u606D\u559C\u901A\u5173\u6240\u6709\u5173\u5361\uFF01\u4F60\u662F\u6570\u5B57\u4E4B\u738B\uFF01', 4000);
       }
-    } else {
-      player.r = nr; player.c = nc;
-      draw();
     }
-  };
+  }
 
-  const endGame = (win) => {
-    gameOver = true;
-    if (spawnTimer) { clearInterval(spawnTimer); spawnTimer=null; }
-    if (aiTimer) { clearInterval(aiTimer); aiTimer=null; }
-    if (dirTimer) { clearInterval(dirTimer); dirTimer=null; }
-    $('#neStartBtn').textContent = '开始';
-    if (player.val > highScore) {
-      highScore = player.val;
-      localStorage.setItem('ne_highscore', highScore);
-      $('#neHigh').textContent = highScore;
-    }
-    toast(win ? '🎉 吞噬王！你达到了 100！' : '💀 被吃掉了！最终数值：'+player.val, 3000);
-  };
+  function resetGame() { level = 0; genLevel(0); }
 
-  const startGame = () => {
-    if (gameOver) { init(); }
-    if (spawnTimer) { clearInterval(spawnTimer); spawnTimer=null; }
-    if (aiTimer) { clearInterval(aiTimer); aiTimer=null; }
-    if (dirTimer) { clearInterval(dirTimer); dirTimer=null; }
-    $('#neStartBtn').textContent = '游戏中...';
-    // Spawn NPCs periodically
-    spawnTimer = setInterval(() => {
-      if (!gameOver && npcs.length < 25) spawnNpc();
-      draw();
-    }, 2000);
-    // AI move
-    aiTimer = setInterval(() => {
-      if (gameOver) return;
-      // Move NPCs randomly
-      npcs.forEach(n => {
-        const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
-        const [dr, dc] = dirs[Math.floor(Math.random()*4)];
-        const nr = n.r + dr, nc = n.c + dc;
-        if (nr>=0 && nr<ROWS && nc>=0 && nc<COLS && !(nr===player.r && nc===player.c)) {
-          // Check no other NPC there
-          const conflict = npcs.some(other => other!==n && other.r===nr && other.c===nc);
-          if (!conflict) { n.r = nr; n.c = nc; }
-        }
-      });
-      draw();
-    }, 500);
-  };
-
-  // Keyboard
   _activeKeyHandler = (e) => {
     if (!$('#gameView').classList.contains('active')) return;
-    if (!$('#neBoard')) return;
-    const map = {
-      ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1],
-      w:[-1,0], s:[1,0], a:[0,-1], d:[0,1],
-      W:[-1,0], S:[1,0], A:[0,-1], D:[0,1],
-    };
-    if (map[e.key]) {
-      e.preventDefault();
-      if (!spawnTimer && !gameOver) startGame();
-      movePlayer(map[e.key][0], map[e.key][1]);
-    }
+    if (!container.querySelector('.ne-board')) return;
+    const map = {ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1],w:[-1,0],s:[1,0],a:[0,-1],d:[0,1],W:[-1,0],S:[1,0],A:[0,-1],D:[0,1]};
+    if (map[e.key]) { e.preventDefault(); movePlayer(map[e.key][0], map[e.key][1]); }
   };
+  window.neMove = (dr,dc) => movePlayer(dr,dc);
+  window.newNumEater = resetGame;
 
-  window.neMove = (dr, dc) => {
-    if (!spawnTimer && !gameOver) startGame();
-    movePlayer(dr, dc);
-  };
-
-  document.getElementById('neStartBtn').onclick = () => {
-    if (gameOver) { init(); }
-    if (spawnTimer) {
-      clearInterval(spawnTimer); clearInterval(aiTimer); clearInterval(dirTimer);
-      spawnTimer=null; aiTimer=null; dirTimer=null;
-      $('#neStartBtn').textContent = '继续';
-    } else {
-      startGame();
-    }
-  };
-
-  window.newNumEater = init;
-  init();
+  container.innerHTML = '<div class=\"game-header\"><button class=\"back-btn\" onclick=\"backToMenu()\">\u2190 \u8FD4\u56DE</button><span class=\"game-title\">\uD83D\uDD22 \u6570\u5B57\u541E\u566C</span></div><div class=\"game-status\"><div class=\"ne-info\"><span>\uD83C\uDFD7\uFE0F <strong class=\"ne-level\">1</strong>/'+LEVELS.length+'</span><span>\uD83E\uDDEC <strong class=\"ne-val\">2</strong></span><span>\uD83C\uDFAF <strong class=\"ne-progress\">0/0</strong></span></div><div class=\"game-controls\"><button class=\"secondary\" onclick=\"newNumEater()\">\u91CD\u65B0\u5F00\u59CB</button></div></div><div class=\"ne-board-wrap\"><div id=\"neBoard\" class=\"ne-board\"></div><div class=\"ne-controls\" style=\"display:grid;grid-template-columns:40px 40px 40px;gap:4px;justify-content:center;margin-top:6px\"><button class=\"secondary\" style=\"grid-column:2;grid-row:1\" onpointerdown=\"neMove(-1,0)\">\u2B06</button><button class=\"secondary\" style=\"grid-column:1;grid-row:2\" onpointerdown=\"neMove(0,-1)\">\u2B05</button><button class=\"secondary\" style=\"grid-column:2;grid-row:2\" onpointerdown=\"neMove(1,0)\">\u2B07</button><button class=\"secondary\" style=\"grid-column:3;grid-row:2\" onpointerdown=\"neMove(0,1)\">\u27A1</button></div><div style=\"color:var(--text2);font-size:12px;text-align:center\">\u65B9\u5411\u952E/WASD\u79FB\u52A8 \u00B7 \u5403\u6389\u6BD4\u81EA\u5DF1\u5C0F\u7684\u6570\u5B57 \u00B7 \u5403\u5149\u901A\u5173</div></div>';
+  if ('ontouchstart' in window) document.querySelector('.ne-controls').style.display = 'grid';
+  genLevel(0);
 }
 
 // ============ MAGIC TOWER ============
