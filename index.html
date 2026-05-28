@@ -1653,8 +1653,8 @@ function renderMagicTower(container) {
 
   // ===== FLOOR MAPS (all 11×11, single-char tiles) =====
   // W=wall .=floor @=start D=yellowDoor B=blueDoor R=redDoor
-  // k=yellowKey b=blueKey r=redKey p=hpPot a=atkPot d=defPot S=stairsUp
-  // 1-6=monsters !=boss
+  // k=yellowKey b=blueKey r=redKey p=hpPot a=atkPot d=defPot
+  // S=stairsUp V=stairsDown 1-6=monsters !=boss
   const FLOOR_MAPS = [
     [ // F1 - Tutorial
       'WWWWWWWWWWW',
@@ -1673,7 +1673,7 @@ function renderMagicTower(container) {
       'WWWWWWWWWWW',
       'W..B..W...W',
       'W.2..W.3..W',
-      'W....W.W..W',
+      'W...VW.W..W',
       'W..D..p.p.W',
       'WW.WWWWW.WW',
       'W....W..4.W',
@@ -1688,7 +1688,7 @@ function renderMagicTower(container) {
       'W.p.W.W.5.W',
       'W..D.W....W',
       'WW.WW..R..W',
-      'W.......W.W',
+      'W....V..W.W',
       'W.4...W..WW',
       'W....W.WW.W',
       'W.r..W..6.W',
@@ -1700,7 +1700,7 @@ function renderMagicTower(container) {
       'W..5..6...W',
       'W.p..D..a.W',
       'WW.WWWWW.WW',
-      'W..d......W',
+      'W..d..V...W',
       'W..D.W....W',
       'W..d..6..WW',
       'WW.WWWWW.WW',
@@ -1726,6 +1726,7 @@ function renderMagicTower(container) {
       else if (ch === '@') tiles[r][c] = '.';
       else if (ch === 'D'||ch==='B'||ch==='R') tiles[r][c] = ch;
       else if (ch === 'S') tiles[r][c] = 'S';
+      else if (ch === 'V') tiles[r][c] = 'V';
       else if (ch.match(/^[1-6!]$/)) { tiles[r][c]='.'; monsters[c+','+r]=ch; }
       else if (ch.match(/^[pkadbr]$/)) { tiles[r][c]='.'; items[c+','+r]=ch; }
       else tiles[r][c] = '.';
@@ -1739,6 +1740,14 @@ function renderMagicTower(container) {
       if (raw[r][c] === '@') return {x:c, y:r};
     }
     return {x:1, y:1};
+  }
+
+  function getStairsPos(floorIdx, type) {
+    const raw = FLOOR_MAPS[floorIdx];
+    for (let r=0; r<raw.length; r++) for (let c=0; c<raw[r].length; c++) {
+      if (raw[r][c] === type) return {x:c, y:r};
+    }
+    return null;
   }
 
   function canBeat(mon) {
@@ -1807,6 +1816,8 @@ function renderMagicTower(container) {
         cell.className += ' mt-door'; cell.textContent = '🟥';
       } else if (tiles[r][c]==='S') {
         cell.className += ' mt-stairs'; cell.textContent = '🔺';
+      } else if (tiles[r][c]==='V') {
+        cell.className += ' mt-stairs'; cell.textContent = '🔻';
       } else if (monsters[key]) {
         const mkey = monsters[key];
         const icon = (MONSTERS[mkey]||{}).icon||'❓';
@@ -1916,12 +1927,28 @@ function renderMagicTower(container) {
       else if (item === 'r') { state.keys.r++; toast('🔴 红钥匙 +1', 800); }
     }
 
+    if (tile === 'V') {
+      if (state.floor > 0) {
+        state.floor--;
+        initFloorData(state.floor);
+        // Place player at the up-stair position of the lower floor
+        const upPos = getStairsPos(state.floor, 'S');
+        if (upPos) { state.px = upPos.x; state.py = upPos.y; }
+        else { state.px = 1; state.py = 1; }
+        draw();
+        toast(`⬇️ 回到第 ${state.floor+1} 层`, 1000);
+        return;
+      }
+    }
+
     if (tile === 'S') {
       if (state.floor < FLOOR_MAPS.length - 1) {
         state.floor++;
         initFloorData(state.floor);
-        const start = getStartPos(state.floor);
-        state.px = start.x; state.py = start.y;
+        // Place player at the down-stair position of the next floor
+        const downPos = getStairsPos(state.floor, 'V');
+        if (downPos) { state.px = downPos.x; state.py = downPos.y; }
+        else { const s = getStartPos(state.floor); state.px = s.x; state.py = s.y; }
         draw();
         toast(`⬆️ 第 ${state.floor+1} 层`, 1000);
         return;
