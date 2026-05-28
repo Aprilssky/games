@@ -420,6 +420,11 @@ const GAMES = [
 ];
 
 // ============ NAVIGATION ============
+let _activeKeyHandler = null;
+document.onkeydown = (e) => {
+  if (_activeKeyHandler) _activeKeyHandler(e);
+};
+
 function showGame(id) {
   $('#gameGrid').style.display = 'none';
   const v = $('#gameView'); v.className = 'game-view active';
@@ -615,7 +620,7 @@ function renderSudoku(container) {
 // ============ MINESWEEPER ============
 function renderMinesweeper(container) {
   const ROWS=9, COLS=9, MINES=10;
-  let board=[], revealed=[], flagged=[], gameOver=false, flagCount=0;
+  let board=[], revealed=[], flagged=[], gameOver=false, flagCount=0, flagMode=false;
 
   container.innerHTML = `
     <div class="game-header">
@@ -628,6 +633,7 @@ function renderMinesweeper(container) {
         <span>🚩 <strong id="flagCount">0</strong></span>
       </div>
       <div class="game-controls">
+        <button class="secondary" id="mineFlagBtn" onclick="toggleFlagMode()">🚩 标记</button>
         <button onclick="newMines()">新游戏</button>
       </div>
     </div>
@@ -678,7 +684,7 @@ function renderMinesweeper(container) {
           td.className='hidden';
         }
         td.oncontextmenu = (e) => { e.preventDefault(); toggleFlag(r,c); };
-        td.onclick = () => revealCell(r,c);
+        td.onclick = () => { if (flagMode) toggleFlag(r,c); else revealCell(r,c); };
         tr.appendChild(td);
       }
       table.appendChild(tr);
@@ -731,6 +737,12 @@ function renderMinesweeper(container) {
   };
 
   window.newMines = init;
+  window.toggleFlagMode = () => {
+    flagMode = !flagMode;
+    const btn = document.getElementById('mineFlagBtn');
+    if (btn) btn.style.background = flagMode ? 'var(--accent3)' : 'var(--surface2)';
+    toast(flagMode ? '🚩 标记模式' : '⛏️ 挖掘模式', 500);
+  };
   init();
 }
 
@@ -949,12 +961,30 @@ function render2048(container) {
     toast('😵 游戏结束！最终得分：'+score, 3000);
   };
 
-  document.onkeydown = (e) => {
+  _activeKeyHandler = (e) => {
     if (!$('#gameView').classList.contains('active')) return;
     if (!$('#b2048')) return;
     const map = {ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
     if (map[e.key]) { e.preventDefault(); swipe(map[e.key]); }
   };
+
+  // Touch swipe for mobile
+  let touchStartX=0, touchStartY=0;
+  const board = document.getElementById('b2048');
+  if (board) {
+    board.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      touchStartX = t.clientX; touchStartY = t.clientY;
+    }, {passive:true});
+    board.addEventListener('touchend', e => {
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
+      const ax = Math.abs(dx), ay = Math.abs(dy);
+      if (Math.max(ax,ay) < 20) return;
+      if (ax > ay) swipe(dx > 0 ? 'right' : 'left');
+      else swipe(dy > 0 ? 'down' : 'up');
+    }, {passive:true});
+  }
 
   window.new2048 = init;
   init();
@@ -1054,7 +1084,7 @@ function renderSnake(container) {
     nextDir = d;
   };
 
-  document.onkeydown = (e) => {
+  _activeKeyHandler = (e) => {
     if (!$('#gameView').classList.contains('active')) return;
     if (!$('#snakeBoard')) return;
     const map = {
@@ -1350,6 +1380,7 @@ function renderDino(container) {
       <div class="dino-overlay" id="dinoOverlay">点击开始</div>
     </div>
     <div class="game-controls" style="justify-content:center;margin-top:8px">
+      <button class="secondary" onpointerdown="dinoJump()">⬆ 跳</button>
       <button onclick="newDino()">重置</button>
     </div>
   `;
@@ -1421,7 +1452,7 @@ function renderDino(container) {
     }, 200);
   };
 
-  document.onkeydown = (e) => {
+  _activeKeyHandler = (e) => {
     if (!$('#gameView').classList.contains('active')) return;
     if (!$('#dinoSprite')) return;
     if (e.key === ' ' || e.key === 'ArrowUp') {
@@ -1433,6 +1464,12 @@ function renderDino(container) {
   };
 
   $('#dinoArea').onclick = () => {
+    if (gameOver) { newDino(); setTimeout(startGame, 100); return; }
+    if (!running) { startGame(); return; }
+    jump();
+  };
+
+  window.dinoJump = () => {
     if (gameOver) { newDino(); setTimeout(startGame, 100); return; }
     if (!running) { startGame(); return; }
     jump();
@@ -1481,6 +1518,12 @@ function renderNumEater(container) {
     </div>
     <div class="ne-board-wrap">
       <div id="neBoard" class="ne-board"></div>
+      <div class="ne-controls" style="display:none;grid-template-columns:40px 40px 40px;gap:4px;justify-content:center;margin-top:6px">
+        <button class="secondary" style="grid-column:2;grid-row:1" onpointerdown="neMove(-1,0)">⬆</button>
+        <button class="secondary" style="grid-column:1;grid-row:2" onpointerdown="neMove(0,-1)">⬅</button>
+        <button class="secondary" style="grid-column:2;grid-row:2" onpointerdown="neMove(1,0)">⬇</button>
+        <button class="secondary" style="grid-column:3;grid-row:2" onpointerdown="neMove(0,1)">➡</button>
+      </div>
       <div style="color:var(--text2);font-size:12px;text-align:center">方向键移动 · 吃掉比自己小的数字</div>
     </div>
   `;
@@ -1494,6 +1537,8 @@ function renderNumEater(container) {
     npcs = []; gameOver = false;
     // Initial NPCs
     for (let i=0; i<30; i++) spawnNpc();
+    // Show controls on mobile
+    if ('ontouchstart' in window) document.querySelector('.ne-controls').style.display = 'grid';
     $('#neStartBtn').textContent = '开始';
     draw();
   };
@@ -1608,19 +1653,24 @@ function renderNumEater(container) {
   };
 
   // Keyboard
-  document.onkeydown = (e) => {
+  _activeKeyHandler = (e) => {
     if (!$('#gameView').classList.contains('active')) return;
     if (!$('#neBoard')) return;
     const map = {
       ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1],
-      'w':[-1,0], 's':[1,0], 'a':[0,-1], 'd':[0,1],
-      'W':[-1,0], 'S':[1,0], 'A':[0,-1], 'D':[0,1],
+      w:[-1,0], s:[1,0], a:[0,-1], d:[0,1],
+      W:[-1,0], S:[1,0], A:[0,-1], D:[0,1],
     };
     if (map[e.key]) {
       e.preventDefault();
-      if (!spawnTimer && !gameOver) { startGame(); }
+      if (!spawnTimer && !gameOver) startGame();
       movePlayer(map[e.key][0], map[e.key][1]);
     }
+  };
+
+  window.neMove = (dr, dc) => {
+    if (!spawnTimer && !gameOver) startGame();
+    movePlayer(dr, dc);
   };
 
   document.getElementById('neStartBtn').onclick = () => {
@@ -1963,7 +2013,7 @@ function renderMagicTower(container) {
   }
 
   // ===== KEYBOARD =====
-  document.onkeydown = (e) => {
+  _activeKeyHandler = (e) => {
     if (!$('#gameView').classList.contains('active')) return;
     if (!container.querySelector('.mt-board')) return;
     const map = {
