@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏰 魔塔</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Magic Tower */
+.mt-hud { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 8px 0; font-size: 13px; }
+.mt-hud span { background: var(--surface2); padding: 4px 10px; border-radius: 6px; }
+.mt-hud .mt-hp { color: #ff6b6b; }
+.mt-hud .mt-atk { color: #ffa94d; }
+.mt-hud .mt-def { color: #4a9eff; }
+.mt-hud .mt-keys { display: flex; gap: 4px; }
+.mt-hud .mt-keys span { display: inline-flex; align-items: center; gap: 2px; padding: 2px 8px; font-size: 12px; }
+.mt-hud .mt-floor { color: var(--accent); font-weight: 700; }
+.mt-board { display: grid; gap: 1px; background: var(--border); border-radius: 6px; padding: 1px; }
+.mt-cell { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 16px; border-radius: 2px; user-select: none; }
+.mt-wall { background: #2a2a4a; }
+.mt-floor-tile { background: #1a1a2e; }
+.mt-player { background: #2d4a2d; font-size: 18px; }
+.mt-monster { background: #3a1a1a; cursor: pointer; }
+.mt-door { background: #2a2a3a; }
+.mt-item { background: #1a2a1a; }
+.mt-stairs { background: #2a2a1a; }
+/* Combat popup */
+.mt-combat-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none;
+  align-items: center; justify-content: center; z-index: 1000;
+}
+.mt-combat-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; max-width: 360px; width: 90%; text-align: center;
+}
+.mt-combat-box h3 { margin-bottom: 12px; font-size: 20px; }
+.mt-combat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; text-align: center; }
+.mt-combat-grid div { background: var(--surface2); padding: 8px; border-radius: 6px; }
+.mt-combat-grid .label { font-size: 11px; color: var(--text2); }
+.mt-combat-grid .value { font-size: 18px; font-weight: 700; }
+.mt-combat-result { font-size: 16px; font-weight: 700; margin: 12px 0; padding: 8px; border-radius: 6px; }
+.mt-combat-result.win { background: rgba(74,222,128,.15); color: var(--accent2); }
+.mt-combat-result.lose { background: rgba(255,68,68,.15); color: #ff4444; }
+.mt-combat-btn { padding: 8px 24px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; margin: 4px; }
+.mt-combat-btn.attack { background: var(--accent2); color: #000; }
+.mt-combat-btn.flee { background: var(--surface2); color: var(--text); }
+.mt-combat-btn.ok { background: var(--accent); color: white; }
+.mt-controls { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
+.mt-controls button { width: 40px; height: 40px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.mt-controls button:active { background: var(--accent); }
+@media(max-width:600px) {
+  .mt-cell { width: 30px; height: 30px; font-size: 14px; }
+  .mt-hud span { font-size: 11px; padding: 2px 6px; }
+}
+@m
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderMagicTower(container) {
+  // ===== MONSTER DEFINITIONS (single-char keys) =====
+  const MONSTERS = {
+    '1': {name:'史莱姆',icon:'🟢',hp:20,atk:10,def:1,gold:2},
+    '2': {name:'蝙蝠',icon:'🦇',hp:35,atk:15,def:2,gold:3},
+    '3': {name:'骷髅',icon:'💀',hp:55,atk:22,def:6,gold:5},
+    '4': {name:'巫师',icon:'🧙',hp:80,atk:32,def:12,gold:8},
+    '5': {name:'骑士',icon:'⚔️',hp:130,atk:45,def:22,gold:12},
+    '6': {name:'恶魔',icon:'👿',hp:220,atk:65,def:35,gold:18},
+    '!': {name:'暗影领主',icon:'👑',hp:400,atk:90,def:55,gold:50},
+  };
+
+  // ===== FLOOR MAPS (all 11×11, single-char tiles) =====
+  // W=wall .=floor @=start D=yellowDoor B=blueDoor R=redDoor
+  // k=yellowKey b=blueKey r=redKey p=hpPot a=atkPot d=defPot
+  // S=stairsUp V=stairsDown 1-6=monsters !=boss
+  const FLOOR_MAPS = [
+    [ // F1 - Tutorial
+      'WWWWWWWWWWW',
+      'W...W...1.W',
+      'Wk.W.W....W',
+      'Wp.W.D.W..W',
+      'W..W....@.W',
+      'WW.WWWWW.WW',
+      'W...p....WW',
+      'W.W..W..W.W',
+      'W..D.W..2.W',
+      'WkW....k..W',
+      'WWWWWWWWSWW',
+    ],
+    [ // F2
+      'WWWWWWWWWWW',
+      'W..B..W...W',
+      'W.2..W.3..W',
+      'W...VW.W..W',
+      'W..D..p.p.W',
+      'WW.WWWWW.WW',
+      'W....W..4.W',
+      'W.a..W....W',
+      'W..D.W..d.W',
+      'W.b....3..W',
+      'WWWWWWWWSWW',
+    ],
+    [ // F3
+      'WWWWWWWWWWW',
+      'W..4..W..WW',
+      'W.p.W.W.5.W',
+      'W..D.W....W',
+      'WW.WW..R..W',
+      'W....V..W.W',
+      'W.4...W..WW',
+      'W....W.WW.W',
+      'W.r..W..6.W',
+      'W..a..d...W',
+      'WWWWWWWWSWW',
+    ],
+    [ // F4 - Boss
+      'WWWWWWWWWWW',
+      'W..5..6...W',
+      'W.p..D..a.W',
+      'WW.WWWWW.WW',
+      'W..d..V...W',
+      'W..D.W....W',
+      'W..d..6..WW',
+      'WW.WWWWW.WW',
+      'W..p..D..WW',
+      'W..a...!..W',
+      'WWWWWWWWSWW',
+    ],
+  ];
+
+  // ===== PERSISTENT FLOOR STATE =====
+  let floorData = {};
+
+  function initFloorData(floorIdx) {
+    if (floorData[floorIdx]) return;
+    const raw = FLOOR_MAPS[floorIdx];
+    const h = raw.length, w = raw[0].length;
+    const tiles = Array.from({length:h},()=>Array(w).fill('.'));
+    const monsters = {};
+    const items = {};
+    for (let r=0; r<h; r++) for (let c=0; c<w; c++) {
+      const ch = raw[r][c];
+      if (ch === 'W') tiles[r][c] = 'W';
+      else if (ch === '@') tiles[r][c] = '.';
+      else if (ch === 'D'||ch==='B'||ch==='R') tiles[r][c] = ch;
+      else if (ch === 'S') tiles[r][c] = 'S';
+      else if (ch === 'V') tiles[r][c] = 'V';
+      else if (ch.match(/^[1-6!]$/)) { tiles[r][c]='.'; monsters[c+','+r]=ch; }
+      else if (ch.match(/^[pkadbr]$/)) { tiles[r][c]='.'; items[c+','+r]=ch; }
+      else tiles[r][c] = '.';
+    }
+    floorData[floorIdx] = {tiles,monsters,items,w,h};
+  }
+
+  function getStartPos(floorIdx) {
+    const raw = FLOOR_MAPS[floorIdx];
+    for (let r=0; r<raw.length; r++) for (let c=0; c<raw[r].length; c++) {
+      if (raw[r][c] === '@') return {x:c, y:r};
+    }
+    return {x:1, y:1};
+  }
+
+  function getStairsPos(floorIdx, type) {
+    const raw = FLOOR_MAPS[floorIdx];
+    for (let r=0; r<raw.length; r++) for (let c=0; c<raw[r].length; c++) {
+      if (raw[r][c] === type) return {x:c, y:r};
+    }
+    return null;
+  }
+
+  function canBeat(mon) {
+    const p = state;
+    if (p.atk <= mon.def) return false;
+    const rounds = Math.ceil(mon.hp / (p.atk - mon.def));
+    const dmg = rounds * Math.max(1, mon.atk - p.def);
+    return dmg < p.hp;
+  }
+
+  function calcDamage(mon) {
+    const p = state;
+    if (p.atk <= mon.def) return Infinity;
+    const rounds = Math.ceil(mon.hp / (p.atk - mon.def));
+    return rounds * Math.max(1, mon.atk - p.def);
+  }
+
+  // ===== GAME STATE =====
+  let state = null;
+  let _mtTargetPos = null;
+
+  function resetGame() {
+    floorData = {};
+    state = {
+      floor: 0, hp: 200, atk: 8, def: 2,
+      keys: {y:0, b:0, r:0},
+      px: 1, py: 1,
+    };
+    const start = getStartPos(0);
+    state.px = start.x; state.py = start.y;
+    initFloorData(0);
+    draw();
+  }
+
+  // ===== RENDER =====
+  function draw() {
+    initFloorData(state.floor);
+    const {tiles,monsters,items,w,h} = floorData[state.floor];
+    const p = state;
+    const cont = container;
+
+    cont.querySelector('.mt-hp-val').textContent = p.hp;
+    cont.querySelector('.mt-atk-val').textContent = p.atk;
+    cont.querySelector('.mt-def-val').textContent = p.def;
+    cont.querySelector('.mt-floor-val').textContent = `F${p.floor+1}`;
+    cont.querySelector('.mt-key-y').innerHTML = `🔑 ${p.keys.y}`;
+    cont.querySelector('.mt-key-b').innerHTML = `🔷 ${p.keys.b}`;
+    cont.querySelector('.mt-key-r').innerHTML = `🔴 ${p.keys.r}`;
+
+    const board = cont.querySelector('.mt-board');
+    board.style.gridTemplateColumns = `repeat(${w},36px)`;
+    board.innerHTML = '';
+    for (let r=0; r<h; r++) for (let c=0; c<w; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'mt-cell';
+      const key = c+','+r;
+      if (p.px===c && p.py===r) {
+        cell.className += ' mt-player'; cell.textContent = '🧑';
+      } else if (tiles[r][c]==='W') {
+        cell.className += ' mt-wall'; cell.textContent = '⬛';
+      } else if (tiles[r][c]==='D') {
+        cell.className += ' mt-door'; cell.textContent = '🟨';
+      } else if (tiles[r][c]==='B') {
+        cell.className += ' mt-door'; cell.textContent = '🟦';
+      } else if (tiles[r][c]==='R') {
+        cell.className += ' mt-door'; cell.textContent = '🟥';
+      } else if (tiles[r][c]==='S') {
+        cell.className += ' mt-stairs'; cell.textContent = '🔺';
+      } else if (tiles[r][c]==='V') {
+        cell.className += ' mt-stairs'; cell.textContent = '🔻';
+      } else if (monsters[key]) {
+        const mkey = monsters[key];
+        const icon = (MONSTERS[mkey]||{}).icon||'❓';
+        cell.className += ' mt-monster'; cell.textContent = icon;
+        cell.onclick = () => showCombat(mkey);
+      } else if (items[key]) {
+        const I = {p:'❤️',a:'⚔️',d:'🛡️',k:'🔑',b:'🔷',r:'🔴'};
+        cell.className += ' mt-item'; cell.textContent = I[items[key]]||'❓';
+      } else {
+        cell.className += ' mt-floor-tile';
+      }
+      board.appendChild(cell);
+    }
+  }
+
+  // ===== COMBAT =====
+  function showCombat(monKey) {
+    const mon = MONSTERS[monKey];
+    if (!mon) return;
+    const dmg = calcDamage(mon);
+    const win = canBeat(mon);
+    const p = state;
+    const box = container.querySelector('.mt-combat-box');
+    box.innerHTML = `
+      <h3>${mon.icon} ${mon.name}</h3>
+      <div class="mt-combat-grid">
+        <div><div class="label">❤️ HP</div><div class="value">${mon.hp}</div></div>
+        <div><div class="label">你</div><div class="value">❤️${p.hp} ⚔️${p.atk} 🛡️${p.def}</div></div>
+        <div><div class="label">⚔️ 攻击</div><div class="value">${mon.atk}</div></div>
+        <div><div class="label">🛡️ 防御</div><div class="value">${mon.def}</div></div>
+      </div>
+      ${win ? `<div class="mt-combat-result win">✅ 可击败！预计损血 <strong>${dmg}</strong></div>`
+            : `<div class="mt-combat-result lose">❌ 无法击败！伤害: ${dmg===Infinity?'∞':dmg} > HP ${p.hp}</div>`}
+      <div>
+        ${win ? `<button class="mt-combat-btn attack" onclick="mtFight('${monKey}')">⚔️ 战斗</button>` : ''}
+        <button class="mt-combat-btn ok" onclick="mtCloseCombat()">关闭</button>
+      </div>`;
+    container.querySelector('.mt-combat-overlay').style.display = 'flex';
+  }
+
+  window.mtFight = (monKey) => {
+    const mon = MONSTERS[monKey];
+    if (!mon) return;
+    const dmg = calcDamage(mon);
+    const p = state;
+    p.hp -= dmg;
+    p.atk += Math.floor(mon.gold * 0.6);
+    p.def += Math.floor(mon.gold * 0.4);
+    const pos = _mtTargetPos;
+    _mtTargetPos = null;
+    delete floorData[state.floor].monsters[pos];
+    // Move player onto the monster's cell
+    if (pos) { const [x,y]=pos.split(',').map(Number); p.px=x; p.py=y; }
+    window.mtCloseCombat();
+    if (p.hp <= 0) {
+      p.hp = 0; draw();
+      toast('💀 你被击败了！重新开始', 2000);
+      resetGame();
+      return;
+    }
+    draw();
+    toast(`⚔️ 击败${mon.name}！损血${dmg} HP`, 1500);
+  };
+
+  window.mtCloseCombat = () => {
+    const ov = container.querySelector('.mt-combat-overlay');
+    if (ov) ov.style.display = 'none';
+  };
+
+  // ===== PLAYER MOVEMENT =====
+  function move(dx, dy) {
+    const nx = state.px + dx;
+    const ny = state.py + dy;
+    const fd = floorData[state.floor];
+    const {tiles,monsters,items,w,h} = fd;
+    if (nx<0||nx>=w||ny<0||ny>=h) return;
+    const tile = tiles[ny][nx];
+    const key = nx+','+ny;
+
+    if (tile === 'W') return;
+
+    if (tile === 'D') {
+      if (state.keys.y > 0) { state.keys.y--; tiles[ny][nx]='.'; }
+      else { toast('🔑 需要黄色钥匙', 1000); return; }
+    } else if (tile === 'B') {
+      if (state.keys.b > 0) { state.keys.b--; tiles[ny][nx]='.'; }
+      else { toast('🔷 需要蓝色钥匙', 1000); return; }
+    } else if (tile === 'R') {
+      if (state.keys.r > 0) { state.keys.r--; tiles[ny][nx]='.'; }
+      else { toast('🔴 需要红色钥匙', 1000); return; }
+    }
+
+    if (monsters[key]) {
+      showCombat(monsters[key]);
+      _mtTargetPos = key;
+      return;
+    }
+
+    if (items[key]) {
+      const item = items[key];
+      delete items[key];
+      if (item === 'p') { state.hp += 200; toast('❤️ HP +200', 800); }
+      else if (item === 'a') { state.atk += 3; toast('⚔️ 攻击 +3', 800); }
+      else if (item === 'd') { state.def += 3; toast('🛡️ 防御 +3', 800); }
+      else if (item === 'k') { state.keys.y++; toast('🔑 黄钥匙 +1', 800); }
+      else if (item === 'b') { state.keys.b++; toast('🔷 蓝钥匙 +1', 800); }
+      else if (item === 'r') { state.keys.r++; toast('🔴 红钥匙 +1', 800); }
+    }
+
+    if (tile === 'V') {
+      if (state.floor > 0) {
+        state.floor--;
+        initFloorData(state.floor);
+        // Place player at the up-stair position of the lower floor
+        const upPos = getStairsPos(state.floor, 'S');
+        if (upPos) { state.px = upPos.x; state.py = upPos.y; }
+        else { state.px = 1; state.py = 1; }
+        draw();
+        toast(`⬇️ 回到第 ${state.floor+1} 层`, 1000);
+        return;
+      }
+    }
+
+    if (tile === 'S') {
+      if (state.floor < FLOOR_MAPS.length - 1) {
+        state.floor++;
+        initFloorData(state.floor);
+        // Place player at the down-stair position of the next floor
+        const downPos = getStairsPos(state.floor, 'V');
+        if (downPos) { state.px = downPos.x; state.py = downPos.y; }
+        else { const s = getStartPos(state.floor); state.px = s.x; state.py = s.y; }
+        draw();
+        toast(`⬆️ 第 ${state.floor+1} 层`, 1000);
+        return;
+      } else {
+        toast('🏆 恭喜通关魔塔！你成为了勇者！', 4000);
+        return;
+      }
+    }
+
+    state.px = nx; state.py = ny;
+    draw();
+  }
+
+  // ===== KEYBOARD =====
+  document.onkeydown=(e)=>{if(window._activeKeyHandler)_activeKeyHandler(e);};
+_activeKeyHandler = (e) => {
+    if (!$('#gameView').classList.contains('active')) return;
+    if (!container.querySelector('.mt-board')) return;
+    const map = {
+      ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],
+      w:[0,-1],s:[0,1],a:[-1,0],d:[1,0],
+      W:[0,-1],S:[0,1],A:[-1,0],D:[1,0],
+    };
+    if (map[e.key]) { e.preventDefault(); move(map[e.key][0], map[e.key][1]); }
+  };
+
+  // ===== INIT =====
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">🏰 魔塔</span>
+    </div>
+    <div class="mt-hud">
+      <span class="mt-hp">❤️ <strong class="mt-hp-val">200</strong></span>
+      <span class="mt-atk">⚔️ <strong class="mt-atk-val">8</strong></span>
+      <span class="mt-def">🛡️ <strong class="mt-def-val">2</strong></span>
+      <span class="mt-keys"><span class="mt-key-y">🔑 0</span><span class="mt-key-b">🔷 0</span><span class="mt-key-r">🔴 0</span></span>
+      <span class="mt-floor">🏗️ <strong class="mt-floor-val">F1</strong></span>
+    </div>
+    <div class="board-wrap"><div class="mt-board"></div></div>
+    <div class="mt-controls" style="display:grid;grid-template-columns:40px 40px 40px;gap:4px;justify-content:center;margin-top:8px">
+      <button style="grid-column:2;grid-row:1" onpointerdown="mtMove(0,-1)">⬆</button>
+      <button style="grid-column:1;grid-row:2" onpointerdown="mtMove(-1,0)">⬅</button>
+      <button style="grid-column:2;grid-row:2" onpointerdown="mtMove(0,1)">⬇</button>
+      <button style="grid-column:3;grid-row:2" onpointerdown="mtMove(1,0)">➡</button>
+    </div>
+    <div class="mt-combat-overlay"><div class="mt-combat-box"></div></div>
+  `;
+
+  window.mtMove = move;
+  window.mtNewGame = resetGame;
+  resetGame();
+}
+(function() {
+  const v = document.getElementById('gameView');
+  renderMagicTower(v);
+  // Clean up duplicate toast
+  if (v.querySelector('#toast')) v.querySelector('#toast').remove();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚫ 黑白棋</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Reversi */
+.reversi-board { display: grid; gap: 3px; justify-content: center; }
+.reversi-cell { width: 44px; height: 44px; background: #2d7a3d; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: .15s; }
+.reversi-cell:hover { filter: brightness(1.2); }
+.reversi-cell .piece { width: 34px; height: 34px; border-radius: 50%; transition: .2s; }
+.reversi-cell .piece.black { background: #222; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.reversi-cell .piece.white { background: #eee; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+.reversi-cell.hint .piece { width: 12px; height: 12px; background: rgba(255,255,255,.35); }
+.reversi-cell.flip { animation: rev-flip .3s ease; }
+@keyframes rev-flip { 0%{transform:rotateY(0)} 50%{transform:rotateY(90deg)} 100%{transform:rotateY(0)} }
+.reversi-hud { display: flex; gap: 20px; justify-content: center; font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.reversi-hud .black-score { color: #222; }
+.reversi-hud .white-score { color: #999; }
+.reversi-hud .active { text-decoration: underline; text-underline-offset: 4px; }
+.reversi-hud .win { background: var(--accent2); padding: 2px 10px; border-radius: 12px; color: #000; text-decoration: none; }
+@media(max-width:500px) {
+  .reversi-cell { width: 38px; height: 38px; }
+  .reversi-cell .piece { width: 30px; height: 30px; }
+}
+@m
+.toast { opacity: 0; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderReversi(container) {
+  const SIZE=8;
+  let board=[], turn='black', gameOver=false, lastMove=null;
+  const DIRS=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
+  function init() {
+    board=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
+    board[3][3]='white';board[3][4]='black';
+    board[4][3]='black';board[4][4]='white';
+    turn='black';gameOver=false;lastMove=null;
+    draw();
+  }
+
+  function getValidMoves(color) {
+    const moves=[];
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+      if(board[r][c])continue;
+      for(const [dr,dc] of DIRS){
+        let nr=r+dr,nc=c+dc,found=false;
+        while(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&board[nr][nc]&&board[nr][nc]!==color){
+          nr+=dr;nc+=dc;found=true;
+        }
+        if(found&&nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&board[nr][nc]===color){moves.push([r,c]);break;}
+      }
+    }
+    return moves;
+  }
+
+  function place(r,c,color){
+    board[r][c]=color;
+    for(const [dr,dc] of DIRS){
+      let nr=r+dr,nc=c+dc,flip=[];
+      while(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&board[nr][nc]&&board[nr][nc]!==color){
+        flip.push([nr,nc]);nr+=dr;nc+=dc;
+      }
+      if(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&board[nr][nc]===color)flip.forEach(([fr,fc])=>board[fr][fc]=color);
+    }
+    lastMove=[r,c];
+  }
+
+  function clickCell(r,c){
+    if(gameOver||turn!=='black')return;
+    const valid=getValidMoves('black');
+    if(!valid.some(([vr,vc])=>vr===r&&vc===c))return;
+    place(r,c,'black');
+    if(checkWin())return;
+    turn='white';
+    draw();
+    setTimeout(aiMove,300);
+  }
+
+  function aiMove(){
+    if(gameOver)return;
+    const moves=getValidMoves('white');
+    if(moves.length===0){turn='black';draw();checkWin();return;}
+    let best=null,bestScore=-1;
+    for(const [r,c] of moves){
+      const sim=board.map(row=>[...row]);
+      sim[r][c]='white';
+      for(const [dr,dc] of DIRS){
+        let nr=r+dr,nc=c+dc,flip=[];
+        while(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&sim[nr][nc]&&sim[nr][nc]!=='white'){
+          flip.push([nr,nc]);nr+=dr;nc+=dc;
+        }
+        if(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&sim[nr][nc]==='white')flip.forEach(([fr,fc])=>sim[fr][fc]='white');
+      }
+      let s=0;
+      for(let rr=0;rr<SIZE;rr++)for(let cc=0;cc<SIZE;cc++)if(sim[rr][cc]==='white')s++;
+      if(s>bestScore){bestScore=s;best=[r,c];}
+    }
+    if(best){place(best[0],best[1],'white');}
+    turn='black';draw();checkWin();
+  }
+
+  function checkWin(){
+    const b=getValidMoves('black'),w=getValidMoves('white');
+    if(b.length===0&&w.length===0){gameOver=true;
+      let bc=0,wc=0;
+      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){if(board[r][c]==='black')bc++;if(board[r][c]==='white')wc++;}
+      draw();
+      toast((bc>wc?'⚫ 黑棋胜利！':wc>bc?'⚪ 白棋胜利！':'🤝 平局！')+' '+bc+':'+wc,3000);
+      setTimeout(init,1500);
+      return true;
+    }
+    return false;
+  }
+
+  function draw() {
+    const cont=container;
+    const bc=board.flat().filter(c=>c==='black').length,wc=board.flat().filter(c=>c==='white').length;
+    cont.querySelector('.rev-black').textContent='⚫ '+bc;
+    cont.querySelector('.rev-white').textContent='⚪ '+wc;
+    cont.querySelector('.rev-turn').textContent=turn==='black'?'你的回合':'AI 思考...';
+    const valid=getValidMoves('black');
+    const b=cont.querySelector('.reversi-board');
+    b.style.gridTemplateColumns='repeat('+SIZE+',44px)';
+    b.innerHTML='';
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+      const cell=document.createElement('div');cell.className='reversi-cell';
+      if(board[r][c]){cell.className+=' '+board[r][c];
+        const p=document.createElement('div');p.className='piece '+board[r][c];
+        if(lastMove&&lastMove[0]===r&&lastMove[1]===c)p.style.boxShadow='0 0 8px 2px var(--accent2)';
+        cell.appendChild(p);
+      }else if(valid.some(([vr,vc])=>vr===r&&vc===c)){
+        cell.onclick=()=>clickCell(r,c);
+        const p=document.createElement('div');p.className='piece hint';
+        cell.appendChild(p);
+      }
+      b.appendChild(cell);
+    }
+  }
+
+  window.revNew=init;
+
+  container.innerHTML='<div class="game-header"><button class="back-btn" onclick="backToMenu()">← 返回</button><span class="game-title">⚫ 黑白棋</span></div><div class="reversi-hud"><span class="rev-black black-score">⚫ 2</span><span class="rev-turn" style="color:var(--accent);font-size:14px">你的回合</span><span class="rev-white white-score">⚪ 2</span></div><div class="board-wrap"><div class="reversi-board"></div></div><div class="game-controls" style="justify-content:center;margin-top:8px"><button onclick="revNew()">新游戏</button></div>';
+  init();
+}
+(function() { renderReversi(document.getElementById('gameView')); })();
+</script>
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦖 恐龙跑酷</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Dino Runner */
+.dino-area {
+  width: 100%; height: 200px; position: relative; overflow: hidden;
+  background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+}
+.dino-ground {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+  background: var(--border);
+}
+.dino-sprite {
+  position: absolute; bottom: 4px; left: 40px; width: 28px; height: 32px;
+  font-size: 28px; line-height: 32px; transition: bottom .1s;
+}
+.dino-sprite.jump { bottom: 80px; }
+.dino-obstacle {
+  position: absolute; bottom: 4px; font-size: 24px;
+  animation: dino-run 2s linear infinite;
+}
+@keyframes dino-run { from{right:-30px} to{right:100%} }
+.dino-score { font-size: 16px; font-weight: 700; text-align: right; padding: 8px; }
+.dino-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 18px; font-weight: 700;
+  background: rgba(0,0,0,.3); border-radius: var(--radius); cursor: pointer;
+}
+/* Toast */
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: white; padding: 10px 24px;
+  border-radius: 24px; font-size: 14px; font-weight: 600;
+  opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+}
+.toast.show { opacity: 1; }
+/* Magic Tower */
+.mt-hud { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 8px 0; font-size: 13px; }
+.mt-hud span { background: var(--surface2); padding: 4px 10px; border-radius: 6px; }
+.mt-hud .mt-hp { color: #ff6b6b; }
+.mt-hud .mt-atk { color: #ffa94d; }
+.mt-hud .mt-def { color: #4a9eff; }
+.mt-hud .mt-keys { display: flex; gap: 4px; }
+.mt-hud .mt-keys span { display: inline-flex; align-items: center; gap: 2px; padding: 2px 8px; font-size: 12px; }
+.mt-hud .mt-floor { color: var(--accent); font-weight: 700; }
+.mt-board { display: grid; gap: 1px; background: var(--border); border-radius: 6px; padding: 1px; }
+.mt-cell { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 16px; border-radius: 2px; user-select: none; }
+.mt-wall { background: #2a2a4a; }
+.mt-floor-tile { background: #1a1a2e; }
+.mt-player { background: #2d4a2d; font-size: 18px; }
+.mt-monster { background: #3a1a1a; cursor: pointer; }
+.mt-door { background: #2a2a3a; }
+.mt-item { background: #1a2a1a; }
+.mt-stairs { background: #2a2a1a; }
+/* Combat popup */
+.mt-combat-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none;
+  align-items: center; justify-content: center; z-index: 1000;
+}
+.mt-combat-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; max-width: 360px; width: 90%; text-align: center;
+}
+.mt-combat-box h3 { margin-bottom: 12px; font-size: 20px; }
+.mt-combat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; text-align: center; }
+.mt-combat-grid div { background: var(--surface2); padding: 8px; border-radius: 6px; }
+.mt-combat-grid .label { font-size: 11px; color: var(--text2); }
+.mt-combat-grid .value { font-size: 18px; font-weight: 700; }
+.mt-combat-result { font-size: 16px; font-weight: 700; margin: 12px 0; padding: 8px; border-radius: 6px; }
+.mt-combat-result.win { background: rgba(74,222,128,.15); color: var(--accent2); }
+.mt-combat-result.lose { background: rgba(255,68,68,.15); color: #ff4444; }
+.mt-combat-btn { padding: 8px 24px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; margin: 4px; }
+.mt-combat-btn.attack { background: var(--accent2); color: #000; }
+.mt-combat-btn.flee { background: var(--surface2); color: var(--text); }
+.mt-combat-btn.ok { background: var(--accent); color: white; }
+.mt-controls { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
+.mt-controls button { width: 40px; height: 40px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.mt-controls button:active { background: var(--accent); }
+@media(max-width:600px) {
+  .mt-cell { width: 30px; height: 30px; font-size: 14px; }
+  .mt-hud span { font-size: 11px; padding: 2px 6px; }
+}
+@m
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderDino(container) {
+  let jumping = false, score = 0, gameOver = false, running = false;
+  let gravity = null, obstacleSpawn = null, scoreTimer = null;
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">🦖 恐龙跑酷</span>
+    </div>
+    <div class="dino-score">🏆 <span id="dinoScore">0</span></div>
+    <div class="dino-area" id="dinoArea">
+      <div class="dino-ground"></div>
+      <div class="dino-sprite" id="dinoSprite">🦖</div>
+      <div class="dino-overlay" id="dinoOverlay">点击开始</div>
+    </div>
+    <div class="game-controls" style="justify-content:center;margin-top:8px">
+      <button class="secondary" onpointerdown="dinoJump()">⬆ 跳</button>
+      <button onclick="newDino()">重置</button>
+    </div>
+  `;
+
+  const jump = () => {
+    if (jumping || gameOver) return;
+    jumping = true;
+    const sprite = $('#dinoSprite');
+    sprite.classList.add('jump');
+    setTimeout(() => {
+      sprite.classList.remove('jump');
+      jumping = false;
+    }, 400);
+  };
+
+  const spawnObstacle = () => {
+    if (gameOver || !running) return;
+    const area = $('#dinoArea');
+    const obs = document.createElement('div');
+    obs.className = 'dino-obstacle';
+    obs.textContent = Math.random() < 0.5 ? '🌵' : '🪨';
+    obs.style.animationDuration = (1.8 + Math.random() * 0.4) + 's';
+    area.appendChild(obs);
+    // Remove after animation
+    obs.addEventListener('animationend', () => obs.remove());
+  };
+
+  const checkCollision = () => {
+    if (gameOver) return;
+    const sprite = $('#dinoSprite');
+    const area = $('#dinoArea');
+    const sRect = sprite.getBoundingClientRect();
+    area.querySelectorAll('.dino-obstacle').forEach(obs => {
+      const oRect = obs.getBoundingClientRect();
+      // Collision detection
+      if (sRect.right > oRect.left + 5 && sRect.left < oRect.right - 5 &&
+          sRect.bottom > oRect.top + 5) {
+        endGame();
+      }
+    });
+  };
+
+  const endGame = () => {
+    gameOver = true; running = false;
+    if (gravity) clearInterval(gravity);
+    if (obstacleSpawn) clearInterval(obstacleSpawn);
+    if (scoreTimer) clearInterval(scoreTimer);
+    const overlay = $('#dinoOverlay');
+    overlay.textContent = '💀 游戏结束，得分：'+score;
+    overlay.style.display = 'flex';
+  };
+
+  const startGame = () => {
+    if (running) return;
+    score = 0; gameOver = false; running = true;
+    $('#dinoScore').textContent = '0';
+    // Remove existing obstacles
+    $('#dinoArea').querySelectorAll('.dino-obstacle').forEach(o => o.remove());
+    const overlay = $('#dinoOverlay');
+    overlay.style.display = 'none';
+
+    obstacleSpawn = setInterval(() => spawnObstacle(), 1200 + Math.random() * 800);
+    gravity = setInterval(() => checkCollision(), 50);
+    scoreTimer = setInterval(() => {
+      if (!gameOver && running) {
+        score++;
+        $('#dinoScore').textContent = score;
+      }
+    }, 200);
+  };
+
+  document.onkeydown=(e)=>{if(window._activeKeyHandler)_activeKeyHandler(e);};
+_activeKeyHandler = (e) => {
+    if (!$('#gameView').classList.contains('active')) return;
+    if (!$('#dinoSprite')) return;
+    if (e.key === ' ' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (gameOver) { newDino(); setTimeout(startGame, 100); return; }
+      if (!running) { startGame(); return; }
+      jump();
+    }
+  };
+
+  $('#dinoArea').onclick = () => {
+    if (gameOver) { newDino(); setTimeout(startGame, 100); return; }
+    if (!running) { startGame(); return; }
+    jump();
+  };
+
+  window.dinoJump = () => {
+    if (gameOver) { newDino(); setTimeout(startGame, 100); return; }
+    if (!running) { startGame(); return; }
+    jump();
+  };
+
+  window.newDino = () => {
+    if (gravity) clearInterval(gravity);
+    if (obstacleSpawn) clearInterval(obstacleSpawn);
+    if (scoreTimer) clearInterval(scoreTimer);
+    jumping = false; score = 0; gameOver = false; running = false;
+    gravity = null; obstacleSpawn = null; scoreTimer = null;
+    $('#dinoScore').textContent = '0';
+    $('#dinoArea').querySelectorAll('.dino-obstacle').forEach(o => o.remove());
+    $('#dinoSprite').classList.remove('jump');
+    const overlay = $('#dinoOverlay');
+    overlay.textContent = '🦖 点击开始';
+    overlay.style.display = 'flex';
+  };
+
+  newDino();
+}
+(function() {
+  const v = document.getElementById('gameView');
+  renderDino(v);
+  // Clean up duplicate toast
+  if (v.querySelector('#toast')) v.querySelector('#toast').remove();
+})();
+</script>
+</body>
+</html>

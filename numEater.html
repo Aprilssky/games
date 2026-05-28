@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔢 数字吞噬</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Number Eater */
+.ne-board-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ne-board { display: grid; background: var(--surface2); border-radius: 4px; position: relative; }
+.ne-cell {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  position: relative; user-select: none;
+}
+.ne-cell.npc { color: var(--accent3); }
+.ne-cell.player { color: var(--accent2); font-size: 13px; }
+.ne-cell.player-small { background: rgba(74,222,128,.15); border-radius: 50%; }
+.ne-cell.player-med { background: rgba(74,222,128,.25); border-radius: 50%; }
+.ne-cell.player-large { background: rgba(74,222,128,.35); border-radius: 50%; }
+.ne-cell.player-huge { background: rgba(74,222,128,.45); border-radius: 50%; }
+.ne-cell.eat { animation: ne-eat .2s ease; }
+@keyframes ne-eat { 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+.ne-cell.hurt { animation: ne-hurt .2s ease; color: #ff4444 !important; }
+@keyframes ne-hurt { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+.ne-info { display: flex; gap: 16px; align-items: center; }
+.ne-info span { font-size: 14px; }
+.ne-highscore { color: var(--text2); font-size: 12px; }
+/* Dino Runner */
+.dino-area {
+  width: 100%; height: 200px; position: relative; overflow: hidden;
+  background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+}
+.dino-ground {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+  background: var(--border);
+}
+.dino-sprite {
+  position: absolute; bottom: 4px; left: 40px; width: 28px; height: 32px;
+  font-size: 28px; line-height: 32px; transition: bottom .1s;
+}
+.dino-sprite.jump { bottom: 80px; }
+.dino-obstacle {
+  position: absolute; bottom: 4px; font-size: 24px;
+  animation: dino-run 2s linear infinite;
+}
+@keyframes dino-run { from{right:-30px} to{right:100%} }
+.dino-score { font-size: 16px; font-weight: 700; text-align: right; padding: 8px; }
+.dino-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 18px; font-weight: 700;
+  background: rgba(0,0,0,.3); border-radius: var(--radius); cursor: pointer;
+}
+/* Toast */
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: white; padding: 10px 24px;
+  border-radius: 24px; font-size: 14px; font-weight: 600;
+  opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+}
+.toast.show { opacity: 1; }
+@m
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderNumEater(container) {
+  const LEVELS = [
+    {rows:6, cols:6, numCount:6,  maxVal:4,  startVal:2},
+    {rows:7, cols:7, numCount:10, maxVal:6,  startVal:2},
+    {rows:8, cols:8, numCount:14, maxVal:8,  startVal:2},
+    {rows:9, cols:9, numCount:18, maxVal:10, startVal:2},
+    {rows:10,cols:10,numCount:22, maxVal:12, startVal:3},
+    {rows:11,cols:11,numCount:26, maxVal:15, startVal:3},
+    {rows:12,cols:12,numCount:30, maxVal:18, startVal:4},
+    {rows:13,cols:13,numCount:34, maxVal:22, startVal:4},
+    {rows:14,cols:14,numCount:38, maxVal:26, startVal:5},
+    {rows:15,cols:15,numCount:42, maxVal:30, startVal:5},
+  ];
+  let level = 0, grid = [], player = {r:0,c:0,val:2}, eaten = 0, total = 0, gameOver = false;
+
+  function genLevel(lvl) {
+    const c = LEVELS[Math.min(lvl, LEVELS.length-1)];
+    const {rows,cols,numCount,maxVal,startVal} = c;
+    grid = Array.from({length:rows},()=>Array(cols).fill(0));
+    player = {r:rows>>1, c:cols>>1, val:startVal};
+    eaten = 0; total = numCount; gameOver = false;
+    let placed = 0;
+    while (placed < numCount) {
+      const r = Math.random()*rows|0, c = Math.random()*cols|0;
+      if (grid[r][c] || (r===player.r && c===player.c)) continue;
+      const hi = Math.min(maxVal, player.val + 3 + (placed/3|0));
+      const lo = Math.max(1, player.val - 2 + (placed/4|0));
+      grid[r][c] = Math.min(lo + (Math.random()*(hi-lo+1)|0), maxVal);
+      placed++;
+    }
+    draw();
+  }
+
+  function draw() {
+    const rows = grid.length, cols = grid[0].length;
+    const sz = rows > 12 ? 30 : rows > 9 ? 34 : 38;
+    container.querySelector('.ne-level').textContent = Math.min(level+1, LEVELS.length);
+    container.querySelector('.ne-val').textContent = player.val;
+    container.querySelector('.ne-progress').textContent = eaten+'/'+total;
+    const board = container.querySelector('.ne-board');
+    board.style.gridTemplateColumns = 'repeat('+cols+','+sz+'px)';
+    board.innerHTML = '';
+    for (let r=0; r<rows; r++) for (let c=0; c<cols; c++) {
+      const cell = document.createElement('div'); cell.className = 'ne-cell';
+      if (player.r===r && player.c===c) {
+        cell.className += ' player';
+        cell.textContent = player.val > 99 ? '\u221e' : player.val;
+        cell.style.background = 'rgba(74,222,128,'+(player.val<=5?.15:player.val<=10?.25:player.val<=20?.35:.45)+')';
+        cell.style.borderRadius = '50%';
+      } else if (grid[r][c] > 0) {
+        cell.className += ' npc';
+        cell.textContent = grid[r][c];
+      }
+      board.appendChild(cell);
+    }
+  }
+
+  function movePlayer(dr, dc) {
+    if (gameOver) return;
+    const rows = grid.length, cols = grid[0].length;
+    const nr = player.r + dr, nc = player.c + dc;
+    if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) return;
+    const target = grid[nr][nc];
+    if (target > 0 && target >= player.val) {
+      toast('\u274C \u6570\u503C\u4E0D\u591F\u5927\uFF01\u5148\u5403\u66F4\u5C0F\u7684\u6570\u5B57', 800);
+      return;
+    }
+    if (target > 0) {
+      player.val += target;
+      grid[nr][nc] = 0; eaten++;
+      toast('\uD83C\uDF7D\uFE0F +'+target+' = '+player.val, 500);
+    }
+    player.r = nr; player.c = nc;
+    draw();
+    if (eaten >= total) {
+      gameOver = true;
+      if (level < LEVELS.length - 1) {
+        level++;
+        toast('\uD83C\uDF89 \u901A\u5173\uFF01\u8FDB\u5165\u7B2C '+(level+1)+' \u5173\uFF01', 1500);
+        setTimeout(()=>genLevel(level), 600);
+      } else {
+        toast('\uD83C\uDFC6 \u606D\u559C\u901A\u5173\u6240\u6709\u5173\u5361\uFF01\u4F60\u662F\u6570\u5B57\u4E4B\u738B\uFF01', 4000);
+      }
+    }
+  }
+
+  function resetGame() { level = 0; genLevel(0); }
+
+  document.onkeydown=(e)=>{if(window._activeKeyHandler)_activeKeyHandler(e);};
+_activeKeyHandler = (e) => {
+    if (!$('#gameView').classList.contains('active')) return;
+    if (!container.querySelector('.ne-board')) return;
+    const map = {ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1],w:[-1,0],s:[1,0],a:[0,-1],d:[0,1],W:[-1,0],S:[1,0],A:[0,-1],D:[0,1]};
+    if (map[e.key]) { e.preventDefault(); movePlayer(map[e.key][0], map[e.key][1]); }
+  };
+  window.neMove = (dr,dc) => movePlayer(dr,dc);
+  window.newNumEater = resetGame;
+
+  container.innerHTML = '<div class=\"game-header\"><button class=\"back-btn\" onclick=\"backToMenu()\">\u2190 \u8FD4\u56DE</button><span class=\"game-title\">\uD83D\uDD22 \u6570\u5B57\u541E\u566C</span></div><div class=\"game-status\"><div class=\"ne-info\"><span>\uD83C\uDFD7\uFE0F <strong class=\"ne-level\">1</strong>/'+LEVELS.length+'</span><span>\uD83E\uDDEC <strong class=\"ne-val\">2</strong></span><span>\uD83C\uDFAF <strong class=\"ne-progress\">0/0</strong></span></div><div class=\"game-controls\"><button class=\"secondary\" onclick=\"newNumEater()\">\u91CD\u65B0\u5F00\u59CB</button></div></div><div class=\"ne-board-wrap\"><div id=\"neBoard\" class=\"ne-board\"></div><div class=\"ne-controls\" style=\"display:grid;grid-template-columns:40px 40px 40px;gap:4px;justify-content:center;margin-top:6px\"><button class=\"secondary\" style=\"grid-column:2;grid-row:1\" onpointerdown=\"neMove(-1,0)\">\u2B06</button><button class=\"secondary\" style=\"grid-column:1;grid-row:2\" onpointerdown=\"neMove(0,-1)\">\u2B05</button><button class=\"secondary\" style=\"grid-column:2;grid-row:2\" onpointerdown=\"neMove(1,0)\">\u2B07</button><button class=\"secondary\" style=\"grid-column:3;grid-row:2\" onpointerdown=\"neMove(0,1)\">\u27A1</button></div><div style=\"color:var(--text2);font-size:12px;text-align:center\">\u65B9\u5411\u952E/WASD\u79FB\u52A8 \u00B7 \u5403\u6389\u6BD4\u81EA\u5DF1\u5C0F\u7684\u6570\u5B57 \u00B7 \u5403\u5149\u901A\u5173</div></div>';
+  if ('ontouchstart' in window) document.querySelector('.ne-controls').style.display = 'grid';
+  genLevel(0);
+}
+(function() {
+  const v = document.getElementById('gameView');
+  renderNumEater(v);
+  // Clean up duplicate toast
+  if (v.querySelector('#toast')) v.querySelector('#toast').remove();
+})();
+</script>
+</body>
+</html>

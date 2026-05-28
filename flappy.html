@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐦 Flappy Bird</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Flappy Bird */
+.flappy-area { position: relative; width: 100%; max-width: 400px; height: 500px; margin: 0 auto; background: linear-gradient(180deg,#70c5ce,#a8e6cf); border-radius: var(--radius); overflow: hidden; cursor: pointer; }
+.flappy-bird { position: absolute; font-size: 28px; transition: transform .1s; left: 60px; }
+.flappy-pipe { position: absolute; width: 52px; background: linear-gradient(180deg,#73c72b,#4a8c1a); border: 3px solid #2d5e0e; border-radius: 4px; }
+.flappy-pipe::after { content: ''; position: absolute; left: -6px; width: 58px; height: 18px; background: linear-gradient(180deg,#73c72b,#4a8c1a); border: 3px solid #2d5e0e; border-radius: 3px; }
+.flappy-pipe.top { bottom: auto; }
+.flappy-pipe.top::after { bottom: -6px; }
+.flappy-pipe.bot { top: auto; }
+.flappy-pipe.bot::after { top: -6px; }
+.flappy-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; background: rgba(0,0,0,.3); font-size: 20px; font-weight: 700; color: white; }
+.flappy-score { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 32px; font-weight: 800; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,.5); z-index: 2; }
+.flappy-speed-btn { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,.3); border: none; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; z-index: 2; }
+@m
+.toast { opacity: 0; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderFlappy(container) {
+  let bird={y:200,vy:0},pipes=[],score=0,gameOver=false,running=false,timer=null,pipeTimer=null;
+  const GRAVITY=0.5, JUMP=-8, PIPE_W=52, GAP=150, SPEED=3;
+
+  function jump() {
+    if(gameOver){resetGame();setTimeout(startGame,100);return;}
+    if(!running){startGame();return;}
+    bird.vy=JUMP;
+  }
+
+  function startGame() {
+    if(running)return;
+    bird={y:200,vy:0};pipes=[];score=0;gameOver=false;running=true;
+    document.querySelector('.flappy-overlay').style.display='none';
+    timer=setInterval(update,20);
+    pipeTimer=setInterval(()=>{
+      const topH=80+Math.random()*180|0;
+      pipes.push({x:400,top:topH,bot:topH+GAP,scored:false});
+    },1500);
+  }
+
+  function update() {
+    bird.vy+=GRAVITY;bird.y+=bird.vy;
+    if(bird.y>460){bird.y=460;endGame();return;}
+    if(bird.y<0){bird.y=0;bird.vy=0;}
+    const area=document.querySelector('.flappy-area');
+    const sprite=area.querySelector('.flappy-bird');
+    sprite.style.top=bird.y+'px';
+    sprite.style.transform='rotate('+Math.min(bird.vy*3,60)+'deg)';
+    // Move pipes
+    const areaPipes=area.querySelectorAll('.flappy-pipe');
+    for(let i=areaPipes.length-1;i>=0;i--){
+      const p=areaPipes[i];const x=parseInt(p.style.left||'400');
+      if(p.classList.contains('top')){
+        const idx=pipes.findIndex(pp=>pp._elTop===p);
+        if(idx>=0)pipes[idx].x-=SPEED;
+      }
+    }
+    // Re-render from data
+    pipes.forEach(p=>{p.x-=SPEED;});
+    pipes=pipes.filter(p=>p.x>-60);
+    renderPipes();
+    // Collision
+    const bx=70,by=bird.y,bs=24;
+    pipes.forEach(p=>{
+      if(bx+bs>p.x&&bx<p.x+PIPE_W){
+        if(by<p.top||by+bs>p.bot){endGame();}
+        if(!p.scored&&bx>p.x+PIPE_W/2){p.scored=true;score++;document.querySelector('.flappy-score').textContent=score;}
+      }
+    });
+  }
+
+  function renderPipes() {
+    const area=document.querySelector('.flappy-area');
+    area.querySelectorAll('.flappy-pipe').forEach(el=>el.remove());
+    pipes.forEach(p=>{
+      ['top','bot'].forEach(t=>{
+        const el=document.createElement('div');el.className='flappy-pipe '+t;
+        el.style.left=p.x+'px';
+        if(t==='top'){el.style.height=p.top+'px';el.style.top='0';}
+        else{el.style.height=(500-p.bot)+'px';el.style.bottom='0';}
+        area.appendChild(el);
+        if(t==='top')p._elTop=el;
+      });
+    });
+  }
+
+  function endGame() {
+    gameOver=true;running=false;
+    if(timer)clearInterval(timer);timer=null;
+    if(pipeTimer)clearInterval(pipeTimer);pipeTimer=null;
+    const ov=document.querySelector('.flappy-overlay');
+    ov.style.display='flex';ov.innerHTML='💀 '+score+' 分<br><small>点击重新开始</small>';
+  }
+
+  function resetGame() {
+    if(timer)clearInterval(timer);timer=null;
+    if(pipeTimer)clearInterval(pipeTimer);pipeTimer=null;
+    pipes=[];score=0;gameOver=false;running=false;bird={y:200,vy:0};
+    const area=container.querySelector('.flappy-area');
+    area.querySelector('.flappy-bird').style.top='200px';
+    area.querySelector('.flappy-bird').style.transform='rotate(0deg)';
+    area.querySelectorAll('.flappy-pipe').forEach(el=>el.remove());
+    area.querySelector('.flappy-score').textContent='0';
+    const ov=area.querySelector('.flappy-overlay');
+    ov.style.display='flex';ov.innerHTML='🐦 Flappy Bird<br><small>点击/按空格开始</small>';
+  }
+
+  document.onkeydown=(e)=>{if(window._activeKeyHandler)_activeKeyHandler(e);};
+_activeKeyHandler=(e)=>{
+    if(!container.querySelector('.flappy-area'))return;
+    if(e.key===' '||e.key==='ArrowUp'){e.preventDefault();jump();}
+  };
+
+  window.flappyJump=jump;window.flappyReset=resetGame;
+
+  container.innerHTML='<div class="game-header"><button class="back-btn" onclick="backToMenu()">← 返回</button><span class="game-title">🐦 Flappy Bird</span></div><div class="flappy-area" id="flappyArea"><div class="flappy-bird" style="top:200px">🐦</div><div class="flappy-score">0</div><div class="flappy-overlay" style="display:flex">🐦 Flappy Bird<br><small>点击/按空格开始</small></div></div>';
+  document.getElementById('flappyArea').onclick=jump;
+  resetGame();
+}
+(function() { renderFlappy(document.getElementById('gameView')); })();
+</script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💎 消消乐</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Match-3 */
+.match-board { position: relative; }
+.match-board table { border-collapse: collapse; }
+.match-board td {
+  width: 44px; height: 44px; text-align: center; vertical-align: middle;
+  border: 1px solid rgba(255,255,255,.08); font-size: 22px;
+  cursor: pointer; border-radius: 4px;
+  transition: transform .15s, opacity .15s;
+}
+.match-board td.selected { transform: scale(.9); box-shadow: 0 0 0 2px var(--accent); border-radius: 6px; }
+.match-board td.matched { opacity: 0; }
+@keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(0)} }
+.match-board td.pop { animation: pop .25s ease; opacity: 0; }
+@keyframes fall { from{transform:translateY(-44px)} to{transform:translateY(0)} }
+.match-board td.fall { animation: fall .2s ease; }
+.match-score { font-size: 18px; font-weight: 700; }
+@m
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderMatch3(container) {
+  const ROWS=8, COLS=8;
+  const GEMS = ['🔴','🟠','🟡','🟢','🔵','🟣','💎'];
+  let board=[], selected=null, score=0, animating=false;
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">💎 消消乐</span>
+    </div>
+    <div class="game-status">
+      <span class="match-score">⭐ <span id="matchScore">0</span></span>
+      <div class="game-controls">
+        <button onclick="newMatch3()">新游戏</button>
+      </div>
+    </div>
+    <div class="board-wrap"><table id="matchTable"></table></div>
+  `;
+
+  const fillBoard = () => {
+    board = Array.from({length:ROWS},()=>Array(COLS).fill(''));
+    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+      do { board[r][c] = GEMS[Math.floor(Math.random()*GEMS.length)]; }
+      while ((c>=2 && board[r][c]===board[r][c-1] && board[r][c]===board[r][c-2]) ||
+             (r>=2 && board[r][c]===board[r-1][c] && board[r][c]===board[r-2][c]));
+    }
+  };
+
+  const findMatches = () => {
+    const matched = new Set();
+    // Horizontal
+    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS-2; c++) {
+      if (board[r][c] && board[r][c]===board[r][c+1] && board[r][c]===board[r][c+2]) {
+        let e=c+2; while (e<COLS && board[r][e]===board[r][c]) e++;
+        for (let i=c; i<e; i++) matched.add(r+','+i);
+      }
+    }
+    // Vertical
+    for (let c=0; c<COLS; c++) for (let r=0; r<ROWS-2; r++) {
+      if (board[r][c] && board[r][c]===board[r+1][c] && board[r][c]===board[r+2][c]) {
+        let e=r+2; while (e<ROWS && board[e][c]===board[r][c]) e++;
+        for (let i=r; i<e; i++) matched.add(i+','+c);
+      }
+    }
+    return matched;
+  };
+
+  const removeMatches = (matched) => {
+    const pts = matched.size;
+    score += pts * 10;
+    $('#matchScore').textContent = score;
+    matched.forEach(k => {
+      const [r,c] = k.split(',').map(Number);
+      board[r][c] = '';
+    });
+    return pts;
+  };
+
+  const gravity = () => {
+    let moved = false;
+    for (let c=0; c<COLS; c++) {
+      let writeRow = ROWS-1;
+      for (let r=ROWS-1; r>=0; r--) if (board[r][c]) { board[writeRow][c]=board[r][c]; if (writeRow!==r) board[r][c]='', moved=true; writeRow--; }
+      for (let r=writeRow; r>=0; r--) { board[r][c]=GEMS[Math.floor(Math.random()*GEMS.length)]; moved=true; }
+    }
+    return moved;
+  };
+
+  const draw = () => {
+    const table = $('#matchTable'); table.innerHTML = '';
+    for (let r=0; r<ROWS; r++) {
+      const tr = document.createElement('tr');
+      for (let c=0; c<COLS; c++) {
+        const td = document.createElement('td');
+        td.textContent = board[r][c];
+        td.dataset.r=r; td.dataset.c=c;
+        td.onclick = () => clickCell(r,c);
+        if (selected && selected[0]===r && selected[1]===c) td.className='selected';
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+  };
+
+  const cascade = () => {
+    let matched = findMatches();
+    if (matched.size === 0) { draw(); return; }
+    removeMatches(matched);
+    draw();
+    setTimeout(() => {
+      gravity();
+      draw();
+      setTimeout(() => cascade(), 150);
+    }, 150);
+  };
+
+  const clickCell = (r,c) => {
+    if (animating) return;
+    if (!selected) { selected=[r,c]; draw(); return; }
+    const [sr,sc] = selected;
+    const dr = Math.abs(r-sr), dc = Math.abs(c-sc);
+    if ((dr===1 && dc===0) || (dr===0 && dc===1)) {
+      // Swap
+      [board[sr][sc], board[r][c]] = [board[r][c], board[sr][sc]];
+      selected = null;
+      const matched = findMatches();
+      if (matched.size === 0) {
+        // Swap back
+        [board[sr][sc], board[r][c]] = [board[r][c], board[sr][sc]];
+        draw();
+        toast('❌ 无法消除');
+        return;
+      }
+      draw();
+      animating = true;
+      setTimeout(() => { cascade(); animating = false; }, 200);
+    } else {
+      selected=[r,c]; draw();
+    }
+  };
+
+  window.newMatch3 = () => { fillBoard(); score=0; selected=null; $('#matchScore').textContent='0'; draw(); };
+  fillBoard(); draw();
+}
+(function() {
+  const v = document.getElementById('gameView');
+  renderMatch3(v);
+  // Clean up duplicate toast
+  if (v.querySelector('#toast')) v.querySelector('#toast').remove();
+})();
+</script>
+</body>
+</html>

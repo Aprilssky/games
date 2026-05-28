@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧩 数独</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Sudoku */
+.sudoku-board { border-collapse: collapse; }
+.sudoku-board td {
+  width: 40px; height: 40px; text-align: center; vertical-align: middle;
+  border: 1px solid var(--border); font-size: 18px; font-weight: 600;
+  cursor: pointer; transition: .15s; position: relative;
+}
+.sudoku-board td:nth-child(3n) { border-right: 2px solid var(--accent); }
+.sudoku-board tr:nth-child(3n) td { border-bottom: 2px solid var(--accent); }
+.sudoku-board td.given { color: var(--accent2); }
+.sudoku-board td.editable { color: var(--text); cursor: pointer; }
+.sudoku-board td.editable:hover { background: var(--surface2); }
+.sudoku-board td.selected { background: var(--accent) !important; color: white !important; }
+.sudoku-board td.highlight { background: rgba(108,99,255,.15); }
+.sudoku-numpad {
+  display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap;
+}
+.sudoku-numpad button {
+  width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: 16px;
+  font-weight: 600; cursor: pointer; transition: .15s;
+}
+.sudoku-numpad button:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.sudoku-numpad button.erase { font-size: 14px; background: var(--surface2); }
+.diff-select { margin-bottom: 12px; display: flex; gap: 8px; justify-content: center; }
+.diff-select button {
+  padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer; font-size: 13px;
+}
+.diff-select button.active { background: var(--accent); color: white; border-color: var(--accent); }
+@m
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderSudoku(container) {
+  let board = [], solution = [], fixed = [], selected = null;
+  let difficulty = 30;
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">🧩 数独</span>
+    </div>
+    <div class="diff-select">
+      <button data-d="20" class="active">简单</button>
+      <button data-d="35">中等</button>
+      <button data-d="50">困难</button>
+    </div>
+    <div class="board-wrap">
+      <table class="sudoku-board" id="sudokuTable"></table>
+    </div>
+    <div class="sudoku-numpad" id="sudokuNumpad"></div>
+    <div class="game-controls" style="justify-content:center;margin-top:12px">
+      <button onclick="checkSudoku()">检查</button>
+      <button class="secondary" onclick="newSudoku()">新游戏</button>
+    </div>
+  `;
+
+  const solve = (grid) => {
+    for (let r=0; r<9; r++) for (let c=0; c<9; c++) if (grid[r][c]===0) {
+      const used = new Set();
+      for (let i=0; i<9; i++) used.add(grid[r][i]) || used.add(grid[i][c]);
+      const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+      for (let i=0; i<3; i++) for (let j=0; j<3; j++) used.add(grid[br+i][bc+j]);
+      for (let n=1; n<=9; n++) if (!used.has(n)) {
+        grid[r][c]=n;
+        if (solve(grid)) return true;
+        grid[r][c]=0;
+      }
+      return false;
+    }
+    return true;
+  };
+
+  const shuffle = arr => { for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; };
+
+  const genPuzzle = (holes) => {
+    const full = Array.from({length:9},()=>Array(9).fill(0));
+    const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+    for (let i=0; i<9; i++) full[i][i]=nums[i];
+    solve(full);
+    solution = full.map(r=>[...r]);
+    const puzzle = full.map(r=>[...r]);
+    let attempts = holes;
+    while (attempts > 0) {
+      const r = Math.floor(Math.random()*9), c = Math.floor(Math.random()*9);
+      if (puzzle[r][c] !== 0) { puzzle[r][c]=0; attempts--; }
+    }
+    return puzzle;
+  };
+
+  const drawBoard = (puzzle) => {
+    const table = $('#sudokuTable'); table.innerHTML = '';
+    fixed = puzzle.map(r=>r.map(v=>v!==0));
+    board = puzzle.map(r=>[...r]);
+    for (let r=0; r<9; r++) {
+      const tr = document.createElement('tr');
+      for (let c=0; c<9; c++) {
+        const td = document.createElement('td');
+        td.dataset.r=r; td.dataset.c=c;
+        if (fixed[r][c]) { td.textContent=puzzle[r][c]; td.className='given'; }
+        else { td.className='editable'; td.onclick=()=>selectCell(r,c); }
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+  };
+
+  const selectCell = (r,c) => {
+    // Update numpad target
+    const np = $('#sudokuNumpad');
+    np.dataset.r=r; np.dataset.c=c;
+    // Visual selection
+    $$('.sudoku-board td.selected').forEach(t=>t.classList.remove('selected'));
+    $$('.sudoku-board td.highlight').forEach(t=>t.classList.remove('highlight'));
+    const cell = $(`#sudokuTable tr:nth-child(${r+1}) td:nth-child(${c+1})`);
+    if (cell.classList.contains('editable')) cell.classList.add('selected');
+    // Highlight same number
+    const v = board[r][c];
+    if (v) $$('.sudoku-board td').forEach(t=>{
+      if (t.textContent==v && !t.classList.contains('selected')) t.classList.add('highlight');
+    });
+    selected = [r,c];
+  };
+
+  const setNum = (n) => {
+    if (!selected) return;
+    const [r,c] = selected;
+    if (fixed[r][c]) return;
+    board[r][c] = n;
+    const cell = $(`#sudokuTable tr:nth-child(${r+1}) td:nth-child(${c+1})`);
+    cell.textContent = n||'';
+    if (n) { cell.classList.remove('selected'); toast(`✓ 填入 ${n}`); }
+    checkWin();
+  };
+
+  const checkWin = () => {
+    for (let r=0; r<9; r++) for (let c=0; c<9; c++) if (board[r][c]===0) return;
+    toast('🎉 恭喜完成数独！', 2000);
+  };
+
+  const newSudoku = (diff) => {
+    if (diff) difficulty = parseInt(diff);
+    const puzzle = genPuzzle(difficulty);
+    drawBoard(puzzle);
+    // Rebuild numpad
+    const np = $('#sudokuNumpad'); np.innerHTML = '';
+    for (let n=1; n<=9; n++) {
+      const b = document.createElement('button');
+      b.textContent=n; b.onclick=()=>setNum(n);
+      np.appendChild(b);
+    }
+    const eb = document.createElement('button');
+    eb.textContent='✕'; eb.className='erase';
+    eb.onclick=()=>setNum(0);
+    np.appendChild(eb);
+  };
+
+  // Diff buttons
+  container.querySelectorAll('.diff-select button').forEach(b=>{
+    b.onclick=()=>{
+      container.querySelectorAll('.diff-select button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      newSudoku(b.dataset.d);
+    };
+  });
+
+  window.newSudoku = newSudoku;
+  window.checkSudoku = () => {
+    for (let r=0; r<9; r++) for (let c=0; c<9; c++) {
+      if (board[r][c] === 0) { toast('❌ 还有空格未填'); return; }
+    }
+    let ok = true;
+    for (let r=0; r<9; r++) for (let c=0; c<9; c++) {
+      const v = board[r][c];
+      for (let i=0; i<9; i++) {
+        if ((i!==c && board[r][i]===v) || (i!==r && board[i][c]===v)) ok=false;
+      }
+      const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;
+      for (let i=0; i<3; i++) for (let j=0; j<3; j++) {
+        if (br+i!==r || bc+j!==c) if (board[br+i][bc+j]===v) ok=false;
+      }
+    }
+    toast(ok ? '✅ 全部正确！' : '❌ 有错误需要修正');
+  };
+
+  // Keyboard input
+  container.onkeydown = (e) => {
+    if (!selected) return;
+    const n = parseInt(e.key);
+    if (n>=1 && n<=9) setNum(n);
+    if (e.key === 'Backspace' || e.key === 'Delete') setNum(0);
+    // Arrow keys for navigation
+    const [r,c] = selected;
+    if (e.key === 'ArrowUp' && r>0) selectCell(r-1,c);
+    if (e.key === 'ArrowDown' && r<8) selectCell(r+1,c);
+    if (e.key === 'ArrowLeft' && c>0) selectCell(r,c-1);
+    if (e.key === 'ArrowRight' && c<8) selectCell(r,c+1);
+  };
+  container.tabIndex = 0;
+
+  newSudoku(difficulty);
+}
+(function() {
+  const v = document.getElementById('gameView');
+  renderSudoku(v);
+  // Clean up duplicate toast
+  if (v.querySelector('#toast')) v.querySelector('#toast').remove();
+})();
+</script>
+</body>
+</html>

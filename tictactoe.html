@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>❌ 井字棋</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Tic-Tac-Toe */
+.ttt-board { display: grid; grid-template-columns: 80px 80px 80px; gap: 4px; }
+.ttt-cell {
+  width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;
+  font-size: 36px; font-weight: 700; background: var(--surface); border-radius: 8px;
+  cursor: pointer; border: 1px solid var(--border); transition: .15s;
+}
+.ttt-cell:hover { border-color: var(--accent); }
+.ttt-cell.x { color: var(--accent2); }
+.ttt-cell.o { color: var(--accent3); }
+.ttt-cell.win { background: rgba(74,222,128,.2); border-color: var(--accent2); }
+.ttt-status { font-size: 16px; font-weight: 600; text-align: center; margin: 8px 0; }
+@m
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderTicTacToe(container) {
+  let board = Array(9).fill(''), turn = 'X', gameOver = false, status = '你的回合 (X)';
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">❌ 井字棋</span>
+    </div>
+    <div class="ttt-status" id="tttStatus">你的回合 (X)</div>
+    <div class="board-wrap"><div class="ttt-board" id="tttBoard"></div></div>
+    <div class="game-controls" style="justify-content:center;margin-top:12px">
+      <button onclick="newTtt()">新游戏</button>
+    </div>
+  `;
+
+  const draw = () => {
+    const b = $('#tttBoard'); b.innerHTML = '';
+    board.forEach((val,i) => {
+      const cell = document.createElement('div');
+      cell.className = 'ttt-cell' + (val ? ' '+val.toLowerCase() : '');
+      cell.textContent = val;
+      cell.onclick = () => clickCell(i);
+      b.appendChild(cell);
+    });
+  };
+
+  const winLines = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  const checkWin = (b) => {
+    for (const [a,bc,c] of winLines) {
+      if (b[a] && b[a]===b[bc] && b[a]===b[c]) return {winner:b[a], line:[a,bc,c]};
+    }
+    if (b.every(v=>v)) return {winner:'draw'};
+    return null;
+  };
+
+  const aiMove = () => {
+    const empty = board.map((v,i)=>v===''?i:null).filter(v=>v!==null);
+    // Win if can
+    for (const i of empty) {
+      const test = [...board]; test[i]='O';
+      if (checkWin(test)) return i;
+    }
+    // Block player win
+    for (const i of empty) {
+      const test = [...board]; test[i]='X';
+      if (checkWin(test)) return i;
+    }
+    // Center
+    if (board[4]==='') return 4;
+    // Random corner
+    const corners = empty.filter(i=>[0,2,6,8].includes(i));
+    if (corners.length) return corners[Math.floor(Math.random()*corners.length)];
+    // Any
+    return empty[Math.floor(Math.random()*empty.length)];
+  };
+
+  const clickCell = (i) => {
+    if (gameOver || board[i] || turn==='O') return;
+    board[i] = 'X';
+    const result = checkWin(board);
+    if (result) { gameOver=true; highlightWin(result); return; }
+    turn = 'O';
+    $('#tttStatus').textContent = 'AI 思考中...';
+    draw();
+    setTimeout(() => {
+      const j = aiMove();
+      if (j === undefined) { gameOver=true; $('#tttStatus').textContent='🤝 平局！'; draw(); return; }
+      board[j] = 'O';
+      const r2 = checkWin(board);
+      if (r2) { gameOver=true; highlightWin(r2); return; }
+      turn = 'X';
+      $('#tttStatus').textContent = '你的回合 (X)';
+      draw();
+    }, 300);
+  };
+
+  const highlightWin = (result) => {
+    draw();
+    if (result.winner === 'draw') {
+      $('#tttStatus').textContent = '🤝 平局！';
+    } else {
+      $('#tttStatus').textContent = result.winner==='X' ? '🎉 你赢了！' : '😵 AI 赢了！';
+      result.line.forEach(i => {
+        $$('.ttt-cell')[i].classList.add('win');
+      });
+    }
+  };
+
+  window.newTtt = () => { board=Array(9).fill(''); turn='X'; gameOver=false; $('#tttStatus').textContent='你的回合 (X)'; draw(); };
+  draw();
+}
+(function() {
+  const v = document.getElementById('gameView');
+  renderTicTacToe(v);
+  // Clean up duplicate toast
+  if (v.querySelector('#toast')) v.querySelector('#toast').remove();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💣 扫雷</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* Minesweeper */
+.mine-board { position: relative; }
+.mine-board table { border-collapse: collapse; }
+.mine-board td {
+  width: 36px; height: 36px; text-align: center; vertical-align: middle;
+  border: 1px solid var(--border); font-size: 16px; font-weight: 700;
+  cursor: pointer; user-select: none;
+}
+.mine-board td.revealed { background: var(--surface2); cursor: default; }
+.mine-board td.hidden { background: var(--surface); }
+.mine-board td.hidden:hover { background: var(--accent); opacity: .6; }
+.mine-board td.flagged { background: var(--surface); }
+.mine-board td.mine { background: #ff4444; }
+.mine-board td.n1 { color: #4a9eff; }
+.mine-board td.n2 { color: #4ade80; }
+.mine-board td.n3 { color: #ff6b6b; }
+.mine-board td.n4 { color: #7c4dff; }
+.mine-board td.n5 { color: #ff4444; }
+.mine-board td.n6 { color: #00bcd4; }
+.mine-board td.n7 { color: #222; }
+.mine-board td.n8 { color: #666; }
+.mine-info { display: flex; gap: 16px; align-items: center; }
+.mine-info span { font-size: 14px; }
+@m
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function renderMinesweeper(container) {
+  const ROWS=9, COLS=9, MINES=10;
+  let board=[], revealed=[], flagged=[], gameOver=false, flagCount=0, flagMode=false;
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">💣 扫雷</span>
+    </div>
+    <div class="game-status">
+      <div class="mine-info">
+        <span>💣 <strong id="mineCount">${MINES}</strong></span>
+        <span>🚩 <strong id="flagCount">0</strong></span>
+      </div>
+      <div class="game-controls">
+        <button class="secondary" id="mineFlagBtn" onclick="toggleFlagMode()">🚩 标记</button>
+        <button onclick="newMines()">新游戏</button>
+      </div>
+    </div>
+    <div class="board-wrap"><div class="mine-board"><table id="mineTable"></table></div></div>
+  `;
+
+  const init = () => {
+    board = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    revealed = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+    flagged = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+    gameOver = false; flagCount = 0;
+    // Place mines
+    let placed = 0;
+    while (placed < MINES) {
+      const r = Math.floor(Math.random()*ROWS), c = Math.floor(Math.random()*COLS);
+      if (board[r][c] !== -1) { board[r][c] = -1; placed++; }
+    }
+    // Calculate numbers
+    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+      if (board[r][c]===-1) continue;
+      let cnt = 0;
+      for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
+        const nr=r+dr, nc=c+dc;
+        if (nr>=0 && nr<ROWS && nc>=0 && nc<COLS && board[nr][nc]===-1) cnt++;
+      }
+      board[r][c] = cnt;
+    }
+    render();
+  };
+
+  const render = () => {
+    const table = $('#mineTable'); table.innerHTML = '';
+    $('#mineCount').textContent = MINES - flagCount;
+    $('#flagCount').textContent = flagCount;
+    for (let r=0; r<ROWS; r++) {
+      const tr = document.createElement('tr');
+      for (let c=0; c<COLS; c++) {
+        const td = document.createElement('td');
+        td.dataset.r=r; td.dataset.c=c;
+        if (revealed[r][c]) {
+          td.className = 'revealed';
+          if (board[r][c]===-1) { td.textContent='💣'; td.className='mine'; }
+          else if (board[r][c]>0) { td.textContent=board[r][c]; td.className+=` n${board[r][c]}`; }
+          else td.textContent='';
+        } else if (flagged[r][c]) {
+          td.className='flagged'; td.textContent='🚩';
+        } else {
+          td.className='hidden';
+        }
+        td.oncontextmenu = (e) => { e.preventDefault(); toggleFlag(r,c); };
+        td.onclick = () => { if (flagMode) toggleFlag(r,c); else revealCell(r,c); };
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+  };
+
+  const revealCell = (r,c) => {
+    if (gameOver || revealed[r][c] || flagged[r][c]) return;
+    revealed[r][c] = true;
+    if (board[r][c] === -1) {
+      // Game over - reveal all
+      gameOver = true;
+      for (let rr=0; rr<ROWS; rr++) for (let cc=0; cc<COLS; cc++) if (board[rr][cc]===-1) revealed[rr][cc]=true;
+      render();
+      toast('💥 踩雷了！');
+      return;
+    }
+    // Flood fill if 0
+    if (board[r][c] === 0) {
+      const q = [[r,c]];
+      while (q.length) {
+        const [cr,cc] = q.shift();
+        for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
+          const nr=cr+dr, nc=cc+dc;
+          if (nr>=0 && nr<ROWS && nc>=0 && nc<COLS && !revealed[nr][nc] && !flagged[nr][nc]) {
+            revealed[nr][nc] = true;
+            if (board[nr][nc] === 0) q.push([nr,nc]);
+          }
+        }
+      }
+    }
+    render();
+    checkWin();
+  };
+
+  const toggleFlag = (r,c) => {
+    if (gameOver || revealed[r][c]) return;
+    flagged[r][c] = !flagged[r][c];
+    flagCount += flagged[r][c] ? 1 : -1;
+    render();
+  };
+
+  const checkWin = () => {
+    let safe = 0, rev = 0;
+    for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+      if (board[r][c] !== -1) safe++;
+      if (revealed[r][c]) rev++;
+    }
+    if (rev === safe) toast('🎉 恭喜通关！', 2000);
+  };
+
+  window.newMines = init;
+  window.toggleFlagMode = () => {
+    flagMode = !flagMode;
+    const btn = document.getElementById('mineFlagBtn');
+    if (btn) btn.style.background = flagMode ? 'var(--accent3)' : 'var(--surface2)';
+    toast(flagMode ? '🚩 标记模式' : '⛏️ 挖掘模式', 500);
+  };
+  init();
+}
+(function() {
+  const v = document.getElementById('gameView');
+  renderMinesweeper(v);
+  // Clean up duplicate toast
+  if (v.querySelector('#toast')) v.querySelector('#toast').remove();
+})();
+</script>
+</body>
+</html>

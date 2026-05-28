@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔢 2048</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --text: #e0e0f0;
+  --text2: #9292b0;
+  --accent: #6c63ff;
+  --accent2: #4ade80;
+  --accent3: #f472b6;
+  --border: #2a2a4a;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #5b52e0;
+  --border: #d0d0e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; transition: background .3s;
+}
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: .2s;
+}
+.theme-btn:hover { background: var(--accent); color: white; }
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; padding: 24px; max-width: 900px; margin: 0 auto;
+}
+.game-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; cursor: pointer;
+  transition: all .25s; text-align: center;
+  box-shadow: var(--shadow);
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(108,99,255,.25);
+}
+.game-card .icon { font-size: 48px; margin-bottom: 12px; }
+.game-card h3 { font-size: 18px; margin-bottom: 8px; }
+.game-card p { color: var(--text2); font-size: 14px; line-height: 1.5; }
+/* Game View */
+.game-view {
+  display: none;
+  padding: 20px; max-width: 600px; margin: 0 auto;
+}
+.game-view.active { display: block; }
+.game-view .game-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.game-view .back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; transition: .2s;
+}
+.game-view .back-btn:hover { background: var(--accent); color: white; }
+.game-view .game-title { font-size: 22px; font-weight: 700; flex: 1; }
+.game-status {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.game-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-controls button {
+  background: var(--accent); color: white; border: none;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: .2s;
+}
+.game-controls button:hover { filter: brightness(1.15); }
+.game-controls button.secondary {
+  background: var(--surface2); color: var(--text);
+}
+.game-controls button.secondary:hover { background: var(--border); }
+/* Game Board Container */
+.board-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; justify-content: center;
+}
+
+/* 2048 */
+.t2048-board {
+  display: grid; gap: 8px; background: var(--surface2); padding: 8px;
+  border-radius: 8px;
+}
+.t2048-cell {
+  width: 64px; height: 64px; display: flex; align-items: center;
+  justify-content: center; font-size: 24px; font-weight: 800;
+  border-radius: 6px; transition: all .1s;
+}
+.t2048-cell.empty { background: rgba(255,255,255,.05); }
+.t2048-cell.t2 { background: #eee4da; color: #776e65; }
+.t2048-cell.t4 { background: #ede0c8; color: #776e65; }
+.t2048-cell.t8 { background: #f2b179; color: #f9f6f2; }
+.t2048-cell.t16 { background: #f59563; color: #f9f6f2; }
+.t2048-cell.t32 { background: #f67c5f; color: #f9f6f2; }
+.t2048-cell.t64 { background: #f65e3b; color: #f9f6f2; }
+.t2048-cell.t128 { background: #edcf72; color: #f9f6f2; font-size: 20px; }
+.t2048-cell.t256 { background: #edcc61; color: #f9f6f2; font-size: 20px; }
+.t2048-cell.t512 { background: #edc850; color: #f9f6f2; font-size: 20px; }
+.t2048-cell.t1024 { background: #edc53f; color: #f9f6f2; font-size: 16px; }
+.t2048-cell.t2048 { background: #edc22e; color: #f9f6f2; font-size: 16px; }
+.t2048-score { font-size: 16px; }
+@m
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="gameView" class="game-view active" style="display:block;max-width:600px;margin:0 auto;padding:20px"></div>
+<div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function toast(m,d){
+  let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';
+  Object.assign(t.style,{position:'fixed',bottom:'30px',left:'50%',transform:'translateX(-50%)',
+  background:'var(--accent)',color:'#fff',padding:'10px 24px',borderRadius:'24px',
+  fontSize:'14px',fontWeight:'600',opacity:'0',transition:'opacity .3s',pointerEvents:'none',zIndex:'999'});document.body.appendChild(t);}
+  t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',d||1500);
+}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',d.dataset.theme);}
+(function(){const s=localStorage.getItem('theme');if(s)document.documentElement.dataset.theme=s;})();
+function backToMenu(){window.location.href='index.html';}
+
+function render2048(container) {
+  const SIZE=4;
+  let grid=[], score=0;
+
+  container.innerHTML = `
+    <div class="game-header">
+      <button class="back-btn" onclick="backToMenu()">← 返回</button>
+      <span class="game-title">🔢 2048</span>
+    </div>
+    <div class="game-status">
+      <span class="t2048-score">🏆 <strong id="g2048score">0</strong></span>
+      <div class="game-controls">
+        <button onclick="new2048()">新游戏</button>
+      </div>
+    </div>
+    <div class="board-wrap"><div id="b2048" class="t2048-board"></div></div>
+  `;
+
+  const init = () => {
+    grid = Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+    score = 0;
+    addTile(); addTile();
+    draw();
+  };
+
+  const addTile = () => {
+    const empty = [];
+    for (let r=0; r<SIZE; r++) for (let c=0; c<SIZE; c++) if (!grid[r][c]) empty.push([r,c]);
+    if (!empty.length) return;
+    const [r,c] = empty[Math.floor(Math.random()*empty.length)];
+    grid[r][c] = Math.random() < .9 ? 2 : 4;
+  };
+
+  const draw = () => {
+    const b = $('#b2048');
+    b.style.gridTemplateColumns = `repeat(${SIZE},1fr)`;
+    b.innerHTML = '';
+    for (let r=0; r<SIZE; r++) for (let c=0; c<SIZE; c++) {
+      const cell = document.createElement('div');
+      cell.className = 't2048-cell';
+      const v = grid[r][c];
+      if (v) { cell.textContent = v; cell.classList.add('t'+v); }
+      else cell.classList.add('empty');
+      b.appendChild(cell);
+    }
+    $('#g2048score').textContent = score;
+  };
+
+  const rotate = (g) => { const n=g.length; return Array.from({length:n},(_,i)=>g.map(r=>r[i]).reverse()); };
+  const flip = (g) => g.map(r=>[...r].reverse());
+
+  const move = (g) => {
+    const n = g.length; let moved = false;
+    for (let i=0; i<n; i++) {
+      let row = g[i].filter(v=>v);
+      for (let j=0; j<row.length-1; j++) {
+        if (row[j] === row[j+1]) { row[j]*=2; score+=row[j]; row.splice(j+1,1); moved=true; }
+      }
+      while (row.length < n) row.push(0);
+      if (row.join(',') !== g[i].join(',')) moved = true;
+      g[i] = row;
+    }
+    return {moved};
+  };
+
+  const swipe = (dir) => {
+    let g = grid.map(r=>[...r]);
+    if (dir==='up') g = rotate(g);
+    else if (dir==='down') g = rotate(flip(g));
+    else if (dir==='right') g = flip(g);
+    const res = move(g);
+    if (dir==='up') g = flip(rotate(g));
+    else if (dir==='down') g = rotate(flip(g));
+    else if (dir==='right') g = flip(g);
+    if (res.moved) {
+      grid = g; addTile(); draw();
+      checkGameOver();
+    }
+  };
+
+  const checkGameOver = () => {
+    for (let r=0; r<SIZE; r++) for (let c=0; c<SIZE; c++) if (!grid[r][c]) return;
+    for (let r=0; r<SIZE; r++) for (let c=0; c<SIZE-1; c++) {
+      if (grid[r][c]===grid[r][c+1] || grid[c][r]===grid[c+1][r]) return;
+    }
+    toast('😵 游戏结束！最终得分：'+score, 3000);
+  };
+
+  document.onkeydown=(e)=>{if(window._activeKeyHandler)_activeKeyHandler(e);};
+_activeKeyHandler = (e) => {
+    if (!$('#gameView').classList.contains('active')) return;
+    if (!$('#b2048')) return;
+    const map = {ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+    if (map[e.key]) { e.preventDefault(); swipe(map[e.key]); }
+  };
+
+  // Touch swipe for mobile
+  let touchStartX=0, touchStartY=0;
+  const board = document.getElementById('b2048');
+  if (board) {
+    board.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      touchStartX = t.clientX; touchStartY = t.clientY;
+    }, {passive:true});
+    board.addEventListener('touchend', e => {
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
+      const ax = Math.abs(dx), ay = Math.abs(dy);
+      if (Math.max(ax,ay) < 20) return;
+      if (ax > ay) swipe(dx > 0 ? 'right' : 'left');
+      else swipe(dy > 0 ? 'down' : 'up');
+    }, {passive:true});
+  }
+
+  window.new2048 = init;
+  init();
+}
+(function() {
+  const v = document.getElementById('gameView');
+  render2048(v);
+  // Clean up duplicate toast
+  if (v.querySelector('#toast')) v.querySelector('#toast').remove();
+})();
+</script>
+</body>
+</html>
