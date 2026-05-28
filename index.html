@@ -1391,6 +1391,21 @@ function renderDino(container) {
     jump();
   };
 
+  window.newDino = () => {
+    if (gravity) clearInterval(gravity);
+    if (obstacleSpawn) clearInterval(obstacleSpawn);
+    if (scoreTimer) clearInterval(scoreTimer);
+    jumping = false; score = 0; gameOver = false; running = false;
+    gravity = null; obstacleSpawn = null; scoreTimer = null;
+    $('#dinoScore').textContent = '0';
+    $('#dinoArea').querySelectorAll('.dino-obstacle').forEach(o => o.remove());
+    $('#dinoSprite').classList.remove('jump');
+    const overlay = $('#dinoOverlay');
+    overlay.textContent = '🦖 点击开始';
+    overlay.style.display = 'flex';
+  };
+
+  newDino();
 }
 
 // ============ NUMBER EATER ============
@@ -1574,23 +1589,6 @@ function renderNumEater(container) {
 
   window.newNumEater = init;
   init();
-}
-
-  window.newDino = () => {
-    if (gravity) clearInterval(gravity);
-    if (obstacleSpawn) clearInterval(obstacleSpawn);
-    if (scoreTimer) clearInterval(scoreTimer);
-    jumping = false; score = 0; gameOver = false; running = false;
-    gravity = null; obstacleSpawn = null; scoreTimer = null;
-    $('#dinoScore').textContent = '0';
-    $('#dinoArea').querySelectorAll('.dino-obstacle').forEach(o => o.remove());
-    $('#dinoSprite').classList.remove('jump');
-    const overlay = $('#dinoOverlay');
-    overlay.textContent = '🦖 点击开始';
-    overlay.style.display = 'flex';
-  };
-
-  newDino();
 }
 
 // ============ RENDER DISPATCH ============
