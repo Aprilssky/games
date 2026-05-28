@@ -1758,6 +1758,7 @@ function renderMagicTower(container) {
 
   // ===== GAME STATE =====
   let state = null;
+  let _mtTargetPos = null;
 
   function resetGame() {
     floorData = {};
@@ -1854,8 +1855,11 @@ function renderMagicTower(container) {
     p.hp -= dmg;
     p.atk += Math.floor(mon.gold * 0.6);
     p.def += Math.floor(mon.gold * 0.4);
-    const key = p.px+','+p.py;
-    delete floorData[state.floor].monsters[key];
+    const pos = _mtTargetPos;
+    _mtTargetPos = null;
+    delete floorData[state.floor].monsters[pos];
+    // Move player onto the monster's cell
+    if (pos) { const [x,y]=pos.split(',').map(Number); p.px=x; p.py=y; }
     window.mtCloseCombat();
     if (p.hp <= 0) {
       p.hp = 0; draw();
@@ -1897,6 +1901,7 @@ function renderMagicTower(container) {
 
     if (monsters[key]) {
       showCombat(monsters[key]);
+      _mtTargetPos = key;
       return;
     }
 
